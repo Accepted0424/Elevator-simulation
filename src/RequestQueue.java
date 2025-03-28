@@ -20,6 +20,12 @@ public class RequestQueue {
         return requests;
     }
 
+    public synchronized void myWait() throws InterruptedException {
+        while (!isEnd && requests.isEmpty()) {
+            wait();
+        }
+    }
+
     public synchronized void offer(PersonRequest pr) {
         requests.add(pr);
         if (requestMap.containsKey(intOf(pr.getFromFloor()))) {

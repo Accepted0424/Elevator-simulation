@@ -125,7 +125,6 @@ public class Elevator implements Runnable {
                 if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "DEFAULT: " + status + MainClass.RESET);
                 break;
         }
-        notifyAll();
     }
 
     private void personOut() {
@@ -179,7 +178,7 @@ public class Elevator implements Runnable {
             }
             if (requestQueue.isEmpty() && insideQueue.isEmpty()) {
                 try {
-                    requestQueue.wait();
+                    requestQueue.myWait();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
