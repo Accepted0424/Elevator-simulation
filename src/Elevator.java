@@ -47,7 +47,9 @@ public class Elevator implements Runnable {
         }
         if (insideQueue.isEmpty()) {
             if (requestQueue.isEmpty()) {
-                if (MainClass.debug) TimableOutput.println("No requests to process, WAITING...");
+                if (MainClass.debug) {
+                    TimableOutput.println("No requests to process, WAITING...");
+                }
                 return Status.WAIT;
             } else {
                 return updateDirection();
@@ -83,7 +85,11 @@ public class Elevator implements Runnable {
         if (nextFloor > curFloor) {
             return Status.MOVE;
         } else if (nextFloor == curFloor) {
-            if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "nextFloor == curFloor, WAITING..." + MainClass.RESET);
+            if (MainClass.debug) {
+                TimableOutput.println(MainClass.BLUE +
+                    "nextFloor == curFloor, WAITING..." +
+                    MainClass.RESET);
+            }
             return Status.WAIT;
         } else {
             return Status.REVERSE;
@@ -119,10 +125,14 @@ public class Elevator implements Runnable {
                 }
                 break;
             case WAIT:
-                //if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "WAITING..." + MainClass.RESET);
+                // if (MainClass.debug) {
+                //  TimableOutput.println(MainClass.BLUE + "WAITING..." + MainClass.RESET);
+                // }
                 break;
             default:
-                if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "DEFAULT: " + status + MainClass.RESET);
+                if (MainClass.debug) {
+                    TimableOutput.println(MainClass.BLUE + "DEFAULT: " + status + MainClass.RESET);
+                }
                 break;
         }
     }
@@ -137,8 +147,14 @@ public class Elevator implements Runnable {
                 iterator.remove();  // 安全删除
             }
         }
-        if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "insideQueue: " + insideQueue + MainClass.RESET);
-        if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "requestQueue: " + requestQueue.getRequestsQueue() + MainClass.RESET);
+        if (MainClass.debug) {
+            TimableOutput.println(MainClass.BLUE + "insideQueue: " + insideQueue + MainClass.RESET);
+        }
+        if (MainClass.debug) {
+            TimableOutput.println(MainClass.BLUE +
+                "requestQueue: " + requestQueue.getRequestsQueue() +
+                MainClass.RESET);
+        }
     }
 
     private void personIn() {
@@ -172,8 +188,11 @@ public class Elevator implements Runnable {
     public void run() {
         while (true) {
             if (requestQueue.isEnd() && requestQueue.isEmpty() && insideQueue.isEmpty()) {
-                if (MainClass.debug)
-                    TimableOutput.println(MainClass.YELLOW + Thread.currentThread().getName() + " END" + MainClass.RESET);
+                if (MainClass.debug) {
+                    TimableOutput.println(MainClass.YELLOW +
+                        Thread.currentThread().getName() + " END" +
+                        MainClass.RESET);
+                }
                 return;
             }
             if (requestQueue.isEmpty() && insideQueue.isEmpty()) {

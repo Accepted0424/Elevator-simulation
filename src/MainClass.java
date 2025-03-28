@@ -1,4 +1,7 @@
-import com.oocourse.elevator1.*;
+import com.oocourse.elevator1.ElevatorInput;
+import com.oocourse.elevator1.PersonRequest;
+import com.oocourse.elevator1.Request;
+import com.oocourse.elevator1.TimableOutput;
 
 public class MainClass {
     // debug info
@@ -30,11 +33,15 @@ public class MainClass {
             } else {
                 if (request instanceof PersonRequest) {
                     PersonRequest pr = (PersonRequest) request;
-                    if (debug) TimableOutput.println(BLUE + "Receive: " + pr + RESET);
+                    if (debug) {
+                        TimableOutput.println(BLUE + "Receive: " + pr + RESET);
+                    }
                     elevators[pr.getElevatorId()].getRequestQueue().offer(pr);
                 }
             }
-            if (debug) TimableOutput.println(BLUE + "In input loop" + RESET);
+            if (debug) {
+                TimableOutput.println(BLUE + "In input loop" + RESET);
+            }
         }
         elevatorInput.close();
     }

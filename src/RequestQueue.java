@@ -35,7 +35,9 @@ public class RequestQueue {
             prs.add(pr);
             requestMap.put(intOf(pr.getFromFloor()), prs);
         }
-        if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "Add to queue: " + pr + MainClass.RESET);
+        if (MainClass.debug) {
+            TimableOutput.println(MainClass.BLUE + "Add to queue: " + pr + MainClass.RESET);
+        }
         notifyAll();
     }
 
