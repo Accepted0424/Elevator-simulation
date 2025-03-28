@@ -36,6 +36,7 @@ public class MainClass {
             }
             if (debug) TimableOutput.println(BLUE + "In input loop" + RESET);
         }
+        elevatorInput.close();
     }
 }
 
