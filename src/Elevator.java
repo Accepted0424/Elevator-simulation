@@ -45,12 +45,19 @@ public class Elevator implements Runnable {
         }
         if (insideQueue.isEmpty()) {
             if (requestQueue.isEmpty()) {
+                if (MainClass.debug) TimableOutput.println("No requests to process, WAITING...");
                 return Status.WAIT;
             } else {
                 return updateDirection();
             }
         } else {
-            return Status.MOVE;
+            if (intOf(insideQueue.peek().getToFloor()) > curFloor) {
+                return Status.MOVE;
+            } else if (intOf(insideQueue.peek().getToFloor()) < curFloor) {
+                return Status.REVERSE;
+            } else {
+                return Status.OPEN;
+            }
         }
     }
 
@@ -73,6 +80,7 @@ public class Elevator implements Runnable {
         if (nextFloor > curFloor) {
             return Status.MOVE;
         } else if (nextFloor == curFloor) {
+            if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "nextFloor == curFloor, WAITING..." + MainClass.RESET);
             return Status.WAIT;
         } else {
             return Status.REVERSE;
@@ -107,6 +115,8 @@ public class Elevator implements Runnable {
                     curFloor--;
                 }
                 break;
+            case WAIT:
+                if (MainClass.debug) System.out.println("WAITING...");
             default:
                 break;
         }
@@ -151,24 +161,17 @@ public class Elevator implements Runnable {
 
     @Override
     public void run() {
-        synchronized (requestQueue) {
-            while (true) {
-                while (requestQueue.isEmpty() && !requestQueue.isEnd() && insideQueue.isEmpty()) {
-                    try {
-                        // System.out.println(Thread.currentThread().getName() + ": Waiting for request...");
-                        requestQueue.wait();
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                if (requestQueue.isEnd()) {
-                    return;
-                }
-                try {
-                    execute();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+        while (true) {
+            if (requestQueue.isEnd()) {
+                return;
+            }
+            if (requestQueue.isEmpty()) {
+                continue;
+            }
+            try {
+                execute();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
     }
