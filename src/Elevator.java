@@ -15,6 +15,7 @@ public class Elevator implements Runnable {
     private final int capacity = 6;
     private static final long timePerFloor = 400;
     private static final long minTimeOpen2Close = 400; // 400ms
+    private final Object lock = new Object();
 
     public Elevator(int id) {
         this.id = id;
@@ -41,7 +42,7 @@ public class Elevator implements Runnable {
 
     private Status update() {
         /* LOOK */
-        if (hasPersonOut() || hashPersonIn()) {
+        if (hasPersonOut() || hasPersonIn()) {
             return Status.OPEN;
         }
         if (insideQueue.isEmpty()) {
@@ -71,7 +72,7 @@ public class Elevator implements Runnable {
         return false;
     }
 
-    private boolean hashPersonIn() {
+    private boolean hasPersonIn() {
         return requestQueue.getRequestsAt(curFloor) != null
                 && !requestQueue.getRequestsAt(curFloor).isEmpty();
     }
@@ -124,6 +125,7 @@ public class Elevator implements Runnable {
                 if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "DEFAULT: " + status + MainClass.RESET);
                 break;
         }
+        notifyAll();
     }
 
     private void personOut() {
@@ -171,11 +173,16 @@ public class Elevator implements Runnable {
     public void run() {
         while (true) {
             if (requestQueue.isEnd() && requestQueue.isEmpty() && insideQueue.isEmpty()) {
-                if (MainClass.debug) TimableOutput.println(MainClass.YELLOW + Thread.currentThread().getName() + " END" + MainClass.RESET);
+                if (MainClass.debug)
+                    TimableOutput.println(MainClass.YELLOW + Thread.currentThread().getName() + " END" + MainClass.RESET);
                 return;
             }
             if (requestQueue.isEmpty() && insideQueue.isEmpty()) {
-                continue;
+                try {
+                    requestQueue.wait();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
             try {
                 execute();
