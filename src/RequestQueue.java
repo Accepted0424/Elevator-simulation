@@ -1,6 +1,5 @@
 import com.oocourse.elevator1.PersonRequest;
 import com.oocourse.elevator1.TimableOutput;
-import sun.applet.Main;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +14,10 @@ public class RequestQueue {
     public RequestQueue() {
         requests = new ArrayList<>();
         requestMap = new HashMap<>();
+    }
+
+    public ArrayList<PersonRequest> getRequestsQueue() {
+        return requests;
     }
 
     public synchronized void offer(PersonRequest pr) {
@@ -50,20 +53,24 @@ public class RequestQueue {
     public synchronized int nextTargetFloor(int curFloor) {
         int nextFloor = curFloor;
         // 向上查找
-        for (int i = curFloor+1; i <= MAX_FLOOR; i++) {
+        boolean upFound = false;
+        for (int i = curFloor + 1; i <= MAX_FLOOR; i++) {
             if (getRequestsAt(i) != null && !getRequestsAt(i).isEmpty()) {
                 nextFloor = i;
+                upFound = true;
                 break;
             }
         }
         // 向下查找
-        for (int i = curFloor-1; i >= MIN_FLOOR; i--) {
-            if (getRequestsAt(i) != null && !getRequestsAt(i).isEmpty() &&
-                    getRequestsAt(nextFloor) != null && !getRequestsAt(nextFloor).isEmpty()) {
-                if (getComprehensivePriorityAt(i) > getComprehensivePriorityAt(nextFloor)) {
+        for (int i = curFloor - 1; i >= MIN_FLOOR; i--) {
+            if (getRequestsAt(i) != null && !getRequestsAt(i).isEmpty()) {
+                if (!upFound) {
                     nextFloor = i;
+                } else {
+                    if (getComprehensivePriorityAt(i) > getComprehensivePriorityAt(nextFloor)) {
+                        nextFloor = i;
+                    }
                 }
-                break;
             }
         }
         notifyAll();

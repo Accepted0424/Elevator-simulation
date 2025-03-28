@@ -1,7 +1,8 @@
 import com.oocourse.elevator1.*;
 
 public class MainClass {
-    public static final boolean debug = true;
+    // debug info
+    public static final boolean debug = false;
     public static final String RESET = "\u001B[0m";  // 重置颜色
     public static final String YELLOW = "\u001B[33m"; // 黄色
     public static final String BLUE = "\u001B[34m";  // 蓝色

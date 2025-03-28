@@ -2,6 +2,7 @@ import com.oocourse.elevator1.PersonRequest;
 import com.oocourse.elevator1.TimableOutput;
 
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
@@ -76,6 +77,7 @@ public class Elevator implements Runnable {
     }
 
     private Status updateDirection() {
+        // insideQueue为空 requestQueue不为空
         int nextFloor = requestQueue.nextTargetFloor(curFloor);
         if (nextFloor > curFloor) {
             return Status.MOVE;
@@ -116,20 +118,26 @@ public class Elevator implements Runnable {
                 }
                 break;
             case WAIT:
-                if (MainClass.debug) System.out.println("WAITING...");
+                //if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "WAITING..." + MainClass.RESET);
+                break;
             default:
+                if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "DEFAULT: " + status + MainClass.RESET);
                 break;
         }
     }
 
     private void personOut() {
-        for (PersonRequest pr : insideQueue) {
+        Iterator<PersonRequest> iterator = insideQueue.iterator();
+        while (iterator.hasNext()) {
+            PersonRequest pr = iterator.next();
             if (intOf(pr.getToFloor()) == curFloor) {
-                TimableOutput.println(String.format("OUT-%d-%s-%d", pr.getPersonId(),
-                    formatFloor(curFloor), id));
-                insideQueue.remove(pr);
+                TimableOutput.println(String.format("OUT-%d-%s-%d",
+                    pr.getPersonId(), formatFloor(curFloor), id));
+                iterator.remove();  // 安全删除
             }
         }
+        if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "insideQueue: " + insideQueue + MainClass.RESET);
+        if (MainClass.debug) TimableOutput.println(MainClass.BLUE + "requestQueue: " + requestQueue.getRequestsQueue() + MainClass.RESET);
     }
 
     private void personIn() {
@@ -162,10 +170,11 @@ public class Elevator implements Runnable {
     @Override
     public void run() {
         while (true) {
-            if (requestQueue.isEnd()) {
+            if (requestQueue.isEnd() && requestQueue.isEmpty() && insideQueue.isEmpty()) {
+                if (MainClass.debug) TimableOutput.println(MainClass.YELLOW + Thread.currentThread().getName() + " END" + MainClass.RESET);
                 return;
             }
-            if (requestQueue.isEmpty()) {
+            if (requestQueue.isEmpty() && insideQueue.isEmpty()) {
                 continue;
             }
             try {
