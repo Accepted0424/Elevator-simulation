@@ -74,9 +74,11 @@ public class RequestQueue {
             if (getRequestsAt(i) != null && !getRequestsAt(i).isEmpty()) {
                 if (!upFound) {
                     nextFloor = i;
+                    break;
                 } else {
                     if (getComprehensivePriorityAt(i) > getComprehensivePriorityAt(nextFloor)) {
                         nextFloor = i;
+                        break;
                     }
                 }
             }
@@ -92,14 +94,23 @@ public class RequestQueue {
     }
 
     public synchronized int getComprehensivePriorityAt(int floor) {
-        /* Undone */
         int sum = 0;
         if (getRequestsAt(floor) == null || getRequestsAt(floor).isEmpty()) {
             notifyAll();
             return 0;
         }
-        for (PersonRequest prs: getRequestsAt(floor)) {
-            sum += prs.getPriority();
+        for (PersonRequest pr : getRequestsAt(floor)) {
+            if (intOf(pr.getToFloor()) > floor) {
+                int floorDiff = intOf(pr.getToFloor()) > 0 && floor < 0 ?
+                    intOf(pr.getToFloor()) - floor - 1 :
+                    intOf(pr.getToFloor()) - floor;
+                sum += pr.getPriority() * floorDiff;
+            } else {
+                int floorDiff = floor > 0 && intOf(pr.getToFloor()) < 0 ?
+                    floor - intOf(pr.getToFloor()) - 1 :
+                    floor - intOf(pr.getToFloor());
+                sum += pr.getPriority() * floorDiff;
+            }
         }
         notifyAll();
         return sum;

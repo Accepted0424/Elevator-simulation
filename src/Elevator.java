@@ -12,7 +12,7 @@ public class Elevator implements Runnable {
     private int lastFloor = 1;
     private final RequestQueue requestQueue;
     private final Queue<PersonRequest> insideQueue;
-    private final int capacity = 6;
+    private static final int capacity = 6;
     private static final long timePerFloor = 400;
     private static final long minTimeOpen2Close = 400; // 400ms
     private final Object lock = new Object();
@@ -40,6 +40,32 @@ public class Elevator implements Runnable {
         return curFloor;
     }
 
+    private double getInsideUpPri() {
+        double sum = 0;
+        for (PersonRequest insidePr: insideQueue) {
+            if (intOf(insidePr.getToFloor()) > curFloor) {
+                int floorDiff = intOf(insidePr.getToFloor()) > 0 && curFloor < 0 ?
+                    intOf(insidePr.getToFloor()) - curFloor - 1 :
+                    intOf(insidePr.getToFloor()) - curFloor;
+                sum += (double) insidePr.getPriority() / (double) floorDiff;
+            }
+        }
+        return sum;
+    }
+
+    private double getInsideDownPri() {
+        double sum = 0;
+        for (PersonRequest insidePr: insideQueue) {
+            if (intOf(insidePr.getToFloor()) < curFloor) {
+                int floorDiff = curFloor > 0 && intOf(insidePr.getToFloor()) < 0 ?
+                    curFloor - intOf(insidePr.getToFloor()) - 1 :
+                    curFloor - intOf(insidePr.getToFloor());
+                sum += (double) insidePr.getPriority() / (double) floorDiff;
+            }
+        }
+        return sum;
+    }
+
     private Status update() {
         /* LOOK */
         if (hasPersonOut() || hasPersonIn()) {
@@ -55,13 +81,19 @@ public class Elevator implements Runnable {
                 return updateDirection();
             }
         } else {
+            if (Double.compare(getInsideUpPri(), getInsideDownPri()) >= 0) {
+                return Status.MOVE;
+            } else {
+                return Status.REVERSE;
+            }
+            /*
             if (intOf(insideQueue.peek().getToFloor()) > curFloor) {
                 return Status.MOVE;
             } else if (intOf(insideQueue.peek().getToFloor()) < curFloor) {
                 return Status.REVERSE;
             } else {
                 return Status.OPEN;
-            }
+            }*/
         }
     }
 
@@ -76,7 +108,7 @@ public class Elevator implements Runnable {
 
     private boolean hasPersonIn() {
         return requestQueue.getRequestsAt(curFloor) != null
-                && !requestQueue.getRequestsAt(curFloor).isEmpty();
+                && !requestQueue.getRequestsAt(curFloor).isEmpty() && insideQueue.size() < capacity;
     }
 
     private Status updateDirection() {
@@ -160,7 +192,7 @@ public class Elevator implements Runnable {
     private void personIn() {
         while (requestQueue.getRequestsAt(curFloor) != null &&
                 !requestQueue.getRequestsAt(curFloor).isEmpty() &&
-                insideQueue.size() <= capacity) {
+                insideQueue.size() < capacity) {
             PersonRequest inPerson = requestQueue.poll(curFloor);
             TimableOutput.println(String.format("IN-%d-%s-%d",
                 inPerson.getPersonId(), formatFloor(curFloor), id));
