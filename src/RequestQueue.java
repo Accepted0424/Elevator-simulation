@@ -1,26 +1,30 @@
 import com.oocourse.elevator1.PersonRequest;
 import com.oocourse.elevator1.TimableOutput;
 
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.PriorityQueue;
 
 public class RequestQueue {
-    private ArrayList<PersonRequest> requests;
-    private HashMap<Integer, ArrayList<PersonRequest>> requestMap;
+    private PriorityQueue<PersonRequest> requests;
+    private HashMap<Integer, PriorityQueue<PersonRequest>> requestMap;
     private boolean isEnd = false;
     private static final int MAX_FLOOR = 7;
     private static final int MIN_FLOOR = -4;
 
     public RequestQueue() {
-        requests = new ArrayList<>();
+        requests = new PriorityQueue<>(Comparator.comparing(PersonRequest::getPriority).reversed());
         requestMap = new HashMap<>();
     }
 
-    public ArrayList<PersonRequest> getRequestsQueue() {
+    public PriorityQueue<PersonRequest> getRequestsQueue() {
         return requests;
     }
 
     public synchronized void myWait() throws InterruptedException {
+        if (MainClass.debug) {
+            TimableOutput.println("Waiting for requests...");
+        }
         while (!isEnd && requests.isEmpty()) {
             wait();
         }
@@ -31,7 +35,8 @@ public class RequestQueue {
         if (requestMap.containsKey(intOf(pr.getFromFloor()))) {
             requestMap.get(intOf(pr.getFromFloor())).add(pr);
         } else {
-            ArrayList<PersonRequest> prs = new ArrayList<>();
+            PriorityQueue<PersonRequest> prs = new PriorityQueue<>(
+                Comparator.comparing(PersonRequest::getPriority).reversed());
             prs.add(pr);
             requestMap.put(intOf(pr.getFromFloor()), prs);
         }
@@ -51,8 +56,8 @@ public class RequestQueue {
         }
         notifyAll();
         if (requestMap.containsKey(floor) && !requestMap.get(floor).isEmpty()) {
-            requests.remove(requestMap.get(floor).get(0));
-            return requestMap.get(floor).remove(0);
+            requests.remove(requestMap.get(floor).peek());
+            return requestMap.get(floor).poll();
         } else {
             return null;
         }
@@ -87,7 +92,7 @@ public class RequestQueue {
         return nextFloor;
     }
 
-    public synchronized ArrayList<PersonRequest> getRequestsAt(int floor) {
+    public synchronized PriorityQueue<PersonRequest> getRequestsAt(int floor) {
         // probably return null
         notifyAll();
         return requestMap.get(floor);
@@ -131,7 +136,7 @@ public class RequestQueue {
             notifyAll();
             return true;
         }
-        for (ArrayList<PersonRequest> prs : requestMap.values()) {
+        for (PriorityQueue<PersonRequest> prs : requestMap.values()) {
             if (!prs.isEmpty()) {
                 notifyAll();
                 return false;

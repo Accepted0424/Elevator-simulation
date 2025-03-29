@@ -20,7 +20,7 @@ public class Elevator implements Runnable {
     public Elevator(int id) {
         this.id = id;
         this.insideQueue = new PriorityQueue<>(
-                Comparator.comparing(PersonRequest::getPriority).reversed());
+                Comparator.comparing(PersonRequest::getPriority));
         this.requestQueue = new RequestQueue();
     }
 
@@ -106,6 +106,12 @@ public class Elevator implements Runnable {
         return false;
     }
 
+    private boolean hasPersonInButFull() {
+        return requestQueue.getRequestsAt(curFloor) != null
+                && !requestQueue.getRequestsAt(curFloor).isEmpty() &&
+                insideQueue.size() == capacity;
+    }
+
     private boolean hasPersonIn() {
         return requestQueue.getRequestsAt(curFloor) != null
                 && !requestQueue.getRequestsAt(curFloor).isEmpty() && insideQueue.size() < capacity;
@@ -134,6 +140,7 @@ public class Elevator implements Runnable {
         }
         lastFloor = curFloor;
         Status status = update();
+        rearrange();
         switch (status) {
             case OPEN:
                 TimableOutput.println(String.format("OPEN-%s-%d", formatFloor(curFloor), id));
@@ -166,6 +173,21 @@ public class Elevator implements Runnable {
                     TimableOutput.println(MainClass.BLUE + "DEFAULT: " + status + MainClass.RESET);
                 }
                 break;
+        }
+    }
+
+    private void rearrange() {
+        if (hasPersonInButFull() && requestQueue.getRequestsAt(curFloor) != null &&
+            !requestQueue.getRequestsAt(curFloor).isEmpty()) {
+            while (requestQueue.getRequestsAt(curFloor).peek().getPriority() >
+                    5 * insideQueue.peek().getPriority()) {
+                TimableOutput.println(String.format("OUT-%d-%s-%d",
+                    insideQueue.peek().getPersonId(), formatFloor(curFloor), id));
+                TimableOutput.println(String.format("IN-%d-%s-%d",
+                    requestQueue.getRequestsAt(curFloor).peek().getPersonId(),
+                    formatFloor(curFloor), id));
+                requestQueue.offer(insideQueue.poll());
+            }
         }
     }
 
