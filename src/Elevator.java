@@ -145,7 +145,6 @@ public class Elevator implements Runnable {
                 TimableOutput.println(String.format("OPEN-%s-%d", formatFloor(curFloor), id));
                 personOut();
                 personIn();
-                if (needRearrange())
                 rearrange();
                 Thread.sleep(minTimeOpen2Close);
                 TimableOutput.println(String.format("CLOSE-%s-%d", formatFloor(curFloor), id));
@@ -179,7 +178,7 @@ public class Elevator implements Runnable {
 
     private boolean needRearrange() {
         if (hasPersonInButFull() && requestQueue.getRequestsAt(curFloor) != null &&
-                !requestQueue.getRequestsAt(curFloor).isEmpty()) {
+            !requestQueue.getRequestsAt(curFloor).isEmpty()) {
             return requestQueue.getRequestsAt(curFloor).peek().getPriority() >
                     5 * insideQueue.peek().getPriority();
         }
