@@ -68,7 +68,7 @@ public class Elevator implements Runnable {
 
     private Status update() {
         /* LOOK */
-        if (hasPersonOut() || hasPersonIn()) {
+        if (hasPersonOut() || hasPersonIn() || needRearrange()) {
             return Status.OPEN;
         }
         if (insideQueue.isEmpty()) {
@@ -140,12 +140,12 @@ public class Elevator implements Runnable {
         }
         lastFloor = curFloor;
         Status status = update();
-        rearrange();
         switch (status) {
             case OPEN:
                 TimableOutput.println(String.format("OPEN-%s-%d", formatFloor(curFloor), id));
                 personOut();
                 personIn();
+                rearrange();
                 Thread.sleep(minTimeOpen2Close);
                 TimableOutput.println(String.format("CLOSE-%s-%d", formatFloor(curFloor), id));
                 break;
@@ -174,6 +174,15 @@ public class Elevator implements Runnable {
                 }
                 break;
         }
+    }
+
+    private boolean needRearrange() {
+        if (hasPersonInButFull() && requestQueue.getRequestsAt(curFloor) != null &&
+                !requestQueue.getRequestsAt(curFloor).isEmpty()) {
+            return requestQueue.getRequestsAt(curFloor).peek().getPriority() >
+                    5 * insideQueue.peek().getPriority();
+        }
+        return false;
     }
 
     private void rearrange() {
