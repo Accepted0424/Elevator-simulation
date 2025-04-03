@@ -15,8 +15,10 @@ public class Elevator implements Runnable {
     private final Queue<PersonRequest> insideQueue;
     private static final int capacity = 6;
     private boolean inSchedule = false;
+    private int targetScheFloor;
     private static final long defaultTimePerFloor = 400;
     private static long timePerFloor = 400;
+    private static long timeStop = 1000;
     private static final long minTimeOpen2Close = 400; // 400ms
     private final Dispatch dispatch;
 
@@ -51,11 +53,14 @@ public class Elevator implements Runnable {
     public synchronized void scheduleStart(ScheRequest sr) {
         inSchedule = true;
         timePerFloor = (long)(sr.getSpeed() * 1000);
+        targetScheFloor = intOf(sr.getToFloor());
+        TimableOutput.println(String.format("SCHE-BEGIN-%d", id));
     }
 
     public synchronized void scheduleEnd() {
         inSchedule = false;
         timePerFloor = defaultTimePerFloor;
+        TimableOutput.println(String.format("SCHE-END-%d", id));
     }
 
     private synchronized double getInsideUpPri() {
@@ -156,16 +161,23 @@ public class Elevator implements Runnable {
         if (lastFloor != curFloor) {
             TimableOutput.println(String.format("ARRIVE-%s-%d", formatFloor(curFloor), id));
         }
+        if (inSchedule && curFloor == targetScheFloor) {
+            allPersonOut();
+            Thread.sleep(timeStop);
+            scheduleEnd();
+        }
         lastFloor = curFloor;
         Status status = update();
         switch (status) {
             case OPEN:
-                TimableOutput.println(String.format("OPEN-%s-%d", formatFloor(curFloor), id));
-                personOut();
-                personIn();
-                rearrange();
-                Thread.sleep(minTimeOpen2Close);
-                TimableOutput.println(String.format("CLOSE-%s-%d", formatFloor(curFloor), id));
+                if (inSchedule) {
+                    TimableOutput.println(String.format("OPEN-%s-%d", formatFloor(curFloor), id));
+                    personOut();
+                    personIn();
+                    rearrange();
+                    Thread.sleep(minTimeOpen2Close);
+                    TimableOutput.println(String.format("CLOSE-%s-%d", formatFloor(curFloor), id));
+                }
                 break;
             case MOVE:
                 Thread.sleep(timePerFloor);
@@ -182,9 +194,9 @@ public class Elevator implements Runnable {
                 }
                 break;
             case WAIT:
-                // if (MainClass.debug) {
-                //  TimableOutput.println(MainClass.BLUE + "WAITING..." + MainClass.RESET);
-                // }
+                if (MainClass.debug) {
+                    TimableOutput.println(MainClass.BLUE + "WAITING..." + MainClass.RESET);
+                }
                 break;
             default:
                 if (MainClass.debug) {
@@ -192,6 +204,10 @@ public class Elevator implements Runnable {
                 }
                 break;
         }
+    }
+
+    private synchronized void executeSche() {
+
     }
 
     private synchronized boolean needRearrange() {
@@ -210,7 +226,7 @@ public class Elevator implements Runnable {
                     !requestQueue.getRequestsAt(curFloor).isEmpty() &&
                     requestQueue.getRequestsAt(curFloor).peek().getPriority() >
                     5 * insideQueue.peek().getPriority()) {
-                TimableOutput.println(String.format("OUT-%d-%s-%d",
+                TimableOutput.println(String.format("OUT-S-%d-%s-%d",
                     insideQueue.peek().getPersonId(), formatFloor(curFloor), id));
                 TimableOutput.println(String.format("IN-%d-%s-%d",
                     requestQueue.getRequestsAt(curFloor).peek().getPersonId(),
@@ -227,7 +243,7 @@ public class Elevator implements Runnable {
         while (iterator.hasNext()) {
             PersonRequest pr = iterator.next();
             if (intOf(pr.getToFloor()) == curFloor) {
-                TimableOutput.println(String.format("OUT-%d-%s-%d",
+                TimableOutput.println(String.format("OUT-F-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
                 iterator.remove();  // 安全删除
             }
@@ -239,6 +255,22 @@ public class Elevator implements Runnable {
             TimableOutput.println(MainClass.BLUE +
                 "requestQueue: " + requestQueue.getRequestsQueue() +
                 MainClass.RESET);
+        }
+    }
+
+    private synchronized void allPersonOut() {
+        Iterator<PersonRequest> iterator = insideQueue.iterator();
+        while (iterator.hasNext()) {
+            PersonRequest pr = iterator.next();
+            if (intOf(pr.getToFloor()) == curFloor) {
+                TimableOutput.println(String.format("OUT-F-%d-%s-%d",
+                    pr.getPersonId(), formatFloor(curFloor), id));
+            } else {
+                dispatch.offer(pr, true, curFloor);
+                TimableOutput.println(String.format("OUT-S-%d-%s-%d",
+                    pr.getPersonId(), formatFloor(curFloor), id));
+            }
+            iterator.remove();  // 安全删除
         }
     }
 
@@ -272,7 +304,8 @@ public class Elevator implements Runnable {
     @Override
     public void run() {
         while (true) {
-            if (requestQueue.isEnd() && requestQueue.isEmpty() && insideQueue.isEmpty()) {
+            if (requestQueue.isEnd() && requestQueue.isEmpty()
+                && insideQueue.isEmpty() && !inSchedule) {
                 if (MainClass.debug) {
                     TimableOutput.println(MainClass.YELLOW +
                         Thread.currentThread().getName() + " END" +
@@ -280,7 +313,7 @@ public class Elevator implements Runnable {
                 }
                 return;
             }
-            if (requestQueue.isEmpty() && insideQueue.isEmpty()) {
+            if (requestQueue.isEmpty() && insideQueue.isEmpty() && !inSchedule) {
                 try {
                     requestQueue.myWait();
                 } catch (InterruptedException e) {
