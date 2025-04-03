@@ -1,5 +1,5 @@
-import com.oocourse.elevator1.PersonRequest;
-import com.oocourse.elevator1.TimableOutput;
+import com.oocourse.elevator2.PersonRequest;
+import com.oocourse.elevator2.TimableOutput;
 
 import java.util.Comparator;
 import java.util.HashMap;

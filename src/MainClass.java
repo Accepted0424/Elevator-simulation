@@ -1,7 +1,4 @@
-import com.oocourse.elevator1.ElevatorInput;
-import com.oocourse.elevator1.PersonRequest;
-import com.oocourse.elevator1.Request;
-import com.oocourse.elevator1.TimableOutput;
+import com.oocourse.elevator2.*;
 
 public class MainClass {
     // debug info
@@ -14,9 +11,13 @@ public class MainClass {
         TimableOutput.initStartTimestamp();
         Elevator[] elevators = new Elevator[7];
 
+        // 启动分配线程
+        Dispatch dispatch = new Dispatch(elevators);
+        new Thread(dispatch, "dispatch").start();
+
         // 启动六个电梯线程
         for (int i = 1; i <= 6; i++) {
-            elevators[i] = new Elevator(i);
+            elevators[i] = new Elevator(i, dispatch);
             new Thread(elevators[i], "elevator_" + i).start();
         }
 
@@ -36,7 +37,11 @@ public class MainClass {
                     if (debug) {
                         TimableOutput.println(BLUE + "Receive: " + pr + RESET);
                     }
-                    elevators[pr.getElevatorId()].getRequestQueue().offer(pr);
+                    dispatch.offer(pr, false, 0);
+                }
+                if (request instanceof ScheRequest) {
+                    ScheRequest scheRequest = (ScheRequest) request;
+                    elevators[scheRequest.getElevatorId()].scheduleStart(scheRequest);
                 }
             }
             if (debug) {

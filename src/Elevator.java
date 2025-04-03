@@ -1,5 +1,6 @@
-import com.oocourse.elevator1.PersonRequest;
-import com.oocourse.elevator1.TimableOutput;
+import com.oocourse.elevator2.PersonRequest;
+import com.oocourse.elevator2.ScheRequest;
+import com.oocourse.elevator2.TimableOutput;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -13,12 +14,15 @@ public class Elevator implements Runnable {
     private final RequestQueue requestQueue;
     private final Queue<PersonRequest> insideQueue;
     private static final int capacity = 6;
-    private static final long timePerFloor = 400;
+    private boolean inSchedule = false;
+    private static final long defaultTimePerFloor = 400;
+    private static long timePerFloor = 400;
     private static final long minTimeOpen2Close = 400; // 400ms
-    private final Object lock = new Object();
+    private final Dispatch dispatch;
 
-    public Elevator(int id) {
+    public Elevator(int id, Dispatch dispatch) {
         this.id = id;
+        this.dispatch = dispatch;
         this.insideQueue = new PriorityQueue<>(
                 Comparator.comparing(PersonRequest::getPriority));
         this.requestQueue = new RequestQueue();
@@ -28,19 +32,29 @@ public class Elevator implements Runnable {
         return id;
     }
 
-    public Queue<PersonRequest> getInsideQueue() {
-        return insideQueue;
+    public synchronized boolean isFull() {
+        return insideQueue.size() == capacity;
     }
 
     public RequestQueue getRequestQueue() {
         return requestQueue;
     }
 
-    public int getCurFloor() {
+    public synchronized int getCurFloor() {
         return curFloor;
     }
 
-    private double getInsideUpPri() {
+    public synchronized void scheduleStart(ScheRequest sr) {
+        inSchedule = true;
+        timePerFloor = (long)(sr.getSpeed() * 1000);
+    }
+
+    public synchronized void scheduleEnd() {
+        inSchedule = false;
+        timePerFloor = defaultTimePerFloor;
+    }
+
+    private synchronized double getInsideUpPri() {
         double sum = 0;
         for (PersonRequest insidePr: insideQueue) {
             if (intOf(insidePr.getToFloor()) > curFloor) {
@@ -53,7 +67,7 @@ public class Elevator implements Runnable {
         return sum;
     }
 
-    private double getInsideDownPri() {
+    private synchronized double getInsideDownPri() {
         double sum = 0;
         for (PersonRequest insidePr: insideQueue) {
             if (intOf(insidePr.getToFloor()) < curFloor) {
@@ -66,7 +80,7 @@ public class Elevator implements Runnable {
         return sum;
     }
 
-    private Status update() {
+    private synchronized Status update() {
         /* LOOK */
         if (hasPersonOut() || hasPersonIn() || needRearrange()) {
             return Status.OPEN;
@@ -97,7 +111,7 @@ public class Elevator implements Runnable {
         }
     }
 
-    private boolean hasPersonOut() {
+    private synchronized boolean hasPersonOut() {
         for (PersonRequest pr : insideQueue) {
             if (intOf(pr.getToFloor()) == curFloor) {
                 return true;
@@ -106,18 +120,18 @@ public class Elevator implements Runnable {
         return false;
     }
 
-    private boolean hasPersonInButFull() {
+    private synchronized boolean hasPersonInButFull() {
         return requestQueue.getRequestsAt(curFloor) != null
                 && !requestQueue.getRequestsAt(curFloor).isEmpty() &&
                 insideQueue.size() == capacity;
     }
 
-    private boolean hasPersonIn() {
+    private synchronized boolean hasPersonIn() {
         return requestQueue.getRequestsAt(curFloor) != null
                 && !requestQueue.getRequestsAt(curFloor).isEmpty() && insideQueue.size() < capacity;
     }
 
-    private Status updateDirection() {
+    private synchronized Status updateDirection() {
         // insideQueue为空 requestQueue不为空
         int nextFloor = requestQueue.nextTargetFloor(curFloor);
         if (nextFloor > curFloor) {
@@ -134,7 +148,7 @@ public class Elevator implements Runnable {
         }
     }
 
-    public void execute() throws InterruptedException {
+    public synchronized void execute() throws InterruptedException {
         if (lastFloor != curFloor) {
             TimableOutput.println(String.format("ARRIVE-%s-%d", formatFloor(curFloor), id));
         }
@@ -176,7 +190,7 @@ public class Elevator implements Runnable {
         }
     }
 
-    private boolean needRearrange() {
+    private synchronized boolean needRearrange() {
         if (hasPersonInButFull() && requestQueue.getRequestsAt(curFloor) != null &&
             !requestQueue.getRequestsAt(curFloor).isEmpty()) {
             return requestQueue.getRequestsAt(curFloor).peek().getPriority() >
@@ -185,7 +199,7 @@ public class Elevator implements Runnable {
         return false;
     }
 
-    private void rearrange() {
+    private synchronized void rearrange() {
         if (hasPersonInButFull() && requestQueue.getRequestsAt(curFloor) != null &&
             !requestQueue.getRequestsAt(curFloor).isEmpty()) {
             while (requestQueue.getRequestsAt(curFloor) != null &&
@@ -197,13 +211,14 @@ public class Elevator implements Runnable {
                 TimableOutput.println(String.format("IN-%d-%s-%d",
                     requestQueue.getRequestsAt(curFloor).peek().getPersonId(),
                     formatFloor(curFloor), id));
+                dispatch.offer(insideQueue.peek(), true, curFloor);
                 requestQueue.offer(insideQueue.poll());
                 insideQueue.add(requestQueue.poll(curFloor));
             }
         }
     }
 
-    private void personOut() {
+    private synchronized void personOut() {
         Iterator<PersonRequest> iterator = insideQueue.iterator();
         while (iterator.hasNext()) {
             PersonRequest pr = iterator.next();
@@ -223,7 +238,7 @@ public class Elevator implements Runnable {
         }
     }
 
-    private void personIn() {
+    private synchronized void personIn() {
         while (requestQueue.getRequestsAt(curFloor) != null &&
                 !requestQueue.getRequestsAt(curFloor).isEmpty() &&
                 insideQueue.size() < capacity) {
