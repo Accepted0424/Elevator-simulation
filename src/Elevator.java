@@ -36,6 +36,10 @@ public class Elevator implements Runnable {
         return insideQueue.size() == capacity;
     }
 
+    public synchronized boolean isInSchedule() {
+        return inSchedule;
+    }
+
     public RequestQueue getRequestQueue() {
         return requestQueue;
     }

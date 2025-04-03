@@ -37,9 +37,11 @@ public class Dispatch implements Runnable {
                 nearest = i;
             }
         }
-        TimableOutput.println(
-            String.format("RECEIVE-%d-%d", pr.getPersonId(), elevators[nearest].getId()));
-        elevators[nearest].getRequestQueue().offer(pr);
+        if (!elevators[nearest].isInSchedule()) {
+            TimableOutput.println(
+                    String.format("RECEIVE-%d-%d", pr.getPersonId(), elevators[nearest].getId()));
+            elevators[nearest].getRequestQueue().offer(pr);
+        }
     }
 
     private static int intOf(String floor) {
