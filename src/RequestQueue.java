@@ -28,9 +28,11 @@ public class RequestQueue {
         wait();
     }
 
-    public synchronized ScheRequest getScheRequest() {
+    public synchronized ScheRequest pollScheRequest() {
+        ScheRequest sr = nowScheRequest;
+        nowScheRequest = null;
         notifyAll();
-        return nowScheRequest;
+        return sr;
     }
 
     public synchronized boolean hasSche() {

@@ -65,7 +65,6 @@ public class Elevator implements Runnable {
     public void scheduleEnd() {
         synchronized (scheduleLock) {
             inSchedule = false;
-            requestQueue.nowScheEnd();
             timePerFloor = defaultTimePerFloor;
             TimableOutput.println(String.format("SCHE-END-%d", id));
             scheduleLock.notifyAll();
@@ -174,9 +173,6 @@ public class Elevator implements Runnable {
     }
 
     public synchronized void execute() throws InterruptedException {
-        if (lastFloor != curFloor) {
-            TimableOutput.println(String.format("ARRIVE-%s-%d", formatFloor(curFloor), id));
-        }
         if (isInSchedule() && curFloor == targetScheFloor) {
             TimableOutput.println(String.format("OPEN-%s-%d", formatFloor(curFloor), id));
             allPersonOut();
@@ -204,6 +200,7 @@ public class Elevator implements Runnable {
                 if (curFloor == 0) {
                     curFloor++;
                 }
+                TimableOutput.println(String.format("ARRIVE-%s-%d", formatFloor(curFloor), id));
                 break;
             case REVERSE:
                 Thread.sleep(timePerFloor);
@@ -211,6 +208,7 @@ public class Elevator implements Runnable {
                 if (curFloor == 0) {
                     curFloor--;
                 }
+                TimableOutput.println(String.format("ARRIVE-%s-%d", formatFloor(curFloor), id));
                 break;
             case WAIT:
                 if (MainClass.debug) {
@@ -241,7 +239,7 @@ public class Elevator implements Runnable {
                     !requestQueue.getRequestsAt(curFloor).isEmpty() &&
                     requestQueue.getRequestsAt(curFloor).peek().getPriority() >
                             5 * insideQueue.peek().getPriority()) {
-                TimableOutput.println(String.format("OUT-S-%d-%s-%d",
+                TimableOutput.println(String.format("OUT-F-%d-%s-%d",
                     insideQueue.peek().getPersonId(), formatFloor(curFloor), id));
                 TimableOutput.println(String.format("IN-%d-%s-%d",
                     requestQueue.getRequestsAt(curFloor).peek().getPersonId(),
@@ -258,7 +256,7 @@ public class Elevator implements Runnable {
         while (iterator.hasNext()) {
             PersonRequest pr = iterator.next();
             if (intOf(pr.getToFloor()) == curFloor) {
-                TimableOutput.println(String.format("OUT-F-%d-%s-%d",
+                TimableOutput.println(String.format("OUT-S-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
                 iterator.remove();  // 安全删除
             }
@@ -270,11 +268,11 @@ public class Elevator implements Runnable {
         while (iterator.hasNext()) {
             PersonRequest pr = iterator.next();
             if (intOf(pr.getToFloor()) == curFloor) {
-                TimableOutput.println(String.format("OUT-F-%d-%s-%d",
+                TimableOutput.println(String.format("OUT-S-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
             } else {
                 dispatch.offer(pr, true, curFloor);
-                TimableOutput.println(String.format("OUT-S-%d-%s-%d",
+                TimableOutput.println(String.format("OUT-F-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
             }
             iterator.remove();  // 安全删除
@@ -315,7 +313,7 @@ public class Elevator implements Runnable {
                 insideQueue.isEmpty() && !isInSchedule()) {
                 return;
             }
-            if (requestQueue.isEmpty() && insideQueue.isEmpty()) {
+            if (requestQueue.isEmpty() && insideQueue.isEmpty() && !isInSchedule()) {
                 try {
                     requestQueue.myWait();
                 } catch (InterruptedException e) {
@@ -323,7 +321,7 @@ public class Elevator implements Runnable {
                 }
             }
             if (requestQueue.hasSche()) {
-                scheduleStart(requestQueue.getScheRequest());
+                scheduleStart(requestQueue.pollScheRequest());
             }
             try {
                 execute();
