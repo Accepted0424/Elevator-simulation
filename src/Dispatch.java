@@ -2,15 +2,15 @@ import com.oocourse.elevator2.PersonRequest;
 import com.oocourse.elevator2.TimableOutput;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.PriorityBlockingQueue;
+import java.util.PriorityQueue;
 
 public class Dispatch implements Runnable {
-    private final PriorityBlockingQueue<PersonRequest> unDispatchQueue =
-        new PriorityBlockingQueue<>(11,
+    private final PriorityQueue<PersonRequest> unDispatchQueue =
+        new PriorityQueue<>(11,
         Comparator.comparing(PersonRequest::getPriority).reversed());
-    private final Map<PersonRequest, Integer> nowFloorMap = new ConcurrentHashMap<>();
+    private final Map<PersonRequest, Integer> nowFloorMap = new HashMap<>();
     private Elevator[] elevators;
     private boolean isEnd = false;
 
@@ -18,30 +18,43 @@ public class Dispatch implements Runnable {
         this.elevators = elevators;
     }
 
-    public void setEnd() {
+    public synchronized void setEnd() {
         isEnd = true;
+        notifyAll();
     }
 
-    public void offer(PersonRequest pr, Boolean isRearrange, int nowFloor) {
+    public synchronized boolean isEnd() {
+        notifyAll();
+        return isEnd;
+    }
+
+    public synchronized void dispatchWait() throws InterruptedException {
+        wait();
+    }
+
+    public synchronized void offer(PersonRequest pr, Boolean isRearrange, int nowFloor) {
         unDispatchQueue.offer(pr);
         nowFloorMap.put(pr, (isRearrange ? nowFloor : intOf(pr.getFromFloor())));
+        notifyAll();
     }
 
     private void dispatch() {
         PersonRequest pr = unDispatchQueue.poll();
+        if (pr == null) {
+            return;
+        }
         int nearest = 1;
         int fromFloor = nowFloorMap.get(pr);
         for (int i = 1; i <= 6; i++) {
             if (!elevators[i].isFull() &&
-                    (elevators[i].getCurFloor() - fromFloor) < elevators[nearest].getCurFloor()) {
+                (elevators[i].getCurFloor() - fromFloor) < elevators[nearest].getCurFloor() &&
+                !elevators[i].isInSchedule()) {
                 nearest = i;
             }
         }
-        if (!elevators[nearest].isInSchedule()) {
-            TimableOutput.println(
-                    String.format("RECEIVE-%d-%d", pr.getPersonId(), elevators[nearest].getId()));
-            elevators[nearest].getRequestQueue().offer(pr);
-        }
+        TimableOutput.println(
+            String.format("RECEIVE-%d-%d", pr.getPersonId(), elevators[nearest].getId()));
+        elevators[nearest].getRequestQueue().offer(pr);
     }
 
     private static int intOf(String floor) {
@@ -54,12 +67,12 @@ public class Dispatch implements Runnable {
 
     public void run() {
         while (true) {
-            if (isEnd && !unDispatchQueue.isEmpty()) {
+            if (isEnd() && unDispatchQueue.isEmpty()) {
                 break;
             }
-            if (!isEnd && unDispatchQueue.isEmpty()) {
+            if (!isEnd() && unDispatchQueue.isEmpty()) {
                 try {
-                    wait();
+                    dispatchWait();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }

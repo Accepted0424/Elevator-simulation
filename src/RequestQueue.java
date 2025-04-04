@@ -1,53 +1,70 @@
 import com.oocourse.elevator2.PersonRequest;
-import com.oocourse.elevator2.TimableOutput;
+import com.oocourse.elevator2.Request;
+import com.oocourse.elevator2.ScheRequest;
 
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.PriorityQueue;
 
 public class RequestQueue {
-    private PriorityQueue<PersonRequest> requests;
+    private PriorityQueue<PersonRequest> personRequests;
     private HashMap<Integer, PriorityQueue<PersonRequest>> requestMap;
+    private ScheRequest nowScheRequest;
     private boolean isEnd = false;
     private static final int MAX_FLOOR = 7;
     private static final int MIN_FLOOR = -4;
 
     public RequestQueue() {
-        requests = new PriorityQueue<>(Comparator.comparing(PersonRequest::getPriority).reversed());
+        personRequests = new PriorityQueue<>(
+                Comparator.comparing(PersonRequest::getPriority).reversed());
         requestMap = new HashMap<>();
     }
 
     public PriorityQueue<PersonRequest> getRequestsQueue() {
-        return requests;
+        return personRequests;
     }
 
     public synchronized void myWait() throws InterruptedException {
-        if (MainClass.debug) {
-            TimableOutput.println("Waiting for requests...");
-        }
-        while (!isEnd && requests.isEmpty()) {
-            wait();
-        }
+        wait();
     }
 
-    public synchronized void offer(PersonRequest pr) {
-        requests.add(pr);
-        if (requestMap.containsKey(intOf(pr.getFromFloor()))) {
-            requestMap.get(intOf(pr.getFromFloor())).add(pr);
+    public synchronized ScheRequest getScheRequest() {
+        notifyAll();
+        return nowScheRequest;
+    }
+
+    public synchronized boolean hasSche() {
+        notifyAll();
+        return nowScheRequest != null;
+    }
+
+    public synchronized void nowScheEnd() {
+        notifyAll();
+        nowScheRequest = null;
+    }
+
+    public synchronized void offer(Request r) {
+        if (r instanceof PersonRequest) {
+            PersonRequest pr = (PersonRequest) r;
+            personRequests.add(pr);
+            if (requestMap.containsKey(intOf(pr.getFromFloor()))) {
+                requestMap.get(intOf(pr.getFromFloor())).add(pr);
+            } else {
+                PriorityQueue<PersonRequest> prs = new PriorityQueue<>(
+                    Comparator.comparing(PersonRequest::getPriority).reversed());
+                prs.add(pr);
+                requestMap.put(intOf(pr.getFromFloor()), prs);
+            }
+        } else if (r instanceof ScheRequest) {
+            nowScheRequest = (ScheRequest) r;
         } else {
-            PriorityQueue<PersonRequest> prs = new PriorityQueue<>(
-                Comparator.comparing(PersonRequest::getPriority).reversed());
-            prs.add(pr);
-            requestMap.put(intOf(pr.getFromFloor()), prs);
-        }
-        if (MainClass.debug) {
-            TimableOutput.println(MainClass.BLUE + "Add to queue: " + pr + MainClass.RESET);
+            System.err.println("Unknown request");
         }
         notifyAll();
     }
 
     public synchronized PersonRequest poll(int floor) {
-        while (requests.isEmpty() && !isEnd) {
+        while (personRequests.isEmpty() && !isEnd) {
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -56,7 +73,7 @@ public class RequestQueue {
         }
         notifyAll();
         if (requestMap.containsKey(floor) && !requestMap.get(floor).isEmpty()) {
-            requests.remove(requestMap.get(floor).peek());
+            personRequests.remove(requestMap.get(floor).peek());
             return requestMap.get(floor).poll();
         } else {
             return null;
@@ -132,9 +149,13 @@ public class RequestQueue {
     }
 
     public synchronized boolean isEmpty() {
-        if (requests.isEmpty()) {
+        if (!personRequests.isEmpty()) {
             notifyAll();
-            return true;
+            return false;
+        }
+        if (nowScheRequest != null) {
+            notifyAll();
+            return false;
         }
         for (PriorityQueue<PersonRequest> prs : requestMap.values()) {
             if (!prs.isEmpty()) {

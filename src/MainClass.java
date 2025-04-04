@@ -1,10 +1,13 @@
-import com.oocourse.elevator2.*;
+import com.oocourse.elevator2.ElevatorInput;
+import com.oocourse.elevator2.PersonRequest;
+import com.oocourse.elevator2.ScheRequest;
+import com.oocourse.elevator2.Request;
+import com.oocourse.elevator2.TimableOutput;
 
 public class MainClass {
     // debug info
     public static final boolean debug = false;
     public static final String RESET = "\u001B[0m";  // 重置颜色
-    public static final String YELLOW = "\u001B[33m"; // 黄色
     public static final String BLUE = "\u001B[34m";  // 蓝色
 
     public static void main(String[] args) throws Exception {
@@ -26,6 +29,8 @@ public class MainClass {
         while (true) {
             Request request = elevatorInput.nextRequest();
             if (request == null) {
+                // 结束分配进程
+                dispatch.setEnd();
                 // 结束所有电梯进程
                 for (int i = 1; i <= 6; i++) {
                     elevators[i].getRequestQueue().setEnd();
@@ -34,18 +39,11 @@ public class MainClass {
             } else {
                 if (request instanceof PersonRequest) {
                     PersonRequest pr = (PersonRequest) request;
-                    if (debug) {
-                        TimableOutput.println(BLUE + "Receive: " + pr + RESET);
-                    }
                     dispatch.offer(pr, false, 0);
-                }
-                if (request instanceof ScheRequest) {
+                } else if (request instanceof ScheRequest) {
                     ScheRequest scheRequest = (ScheRequest) request;
-                    elevators[scheRequest.getElevatorId()].scheduleStart(scheRequest);
+                    elevators[scheRequest.getElevatorId()].getRequestQueue().offer(scheRequest);
                 }
-            }
-            if (debug) {
-                TimableOutput.println(BLUE + "In input loop" + RESET);
             }
         }
         elevatorInput.close();
@@ -53,6 +51,8 @@ public class MainClass {
 }
 
 /*
-889-PRI-20-FROM-F2-TO-F6-BY-1
-295-PRI-20-FROM-F1-TO-F5-BY-4
+SCHE-6-0.2-F1
+417-PRI-15-FROM-B2-TO-B4
+SCHE-3-0.4-B1
+648-PRI-32-FROM-B2-TO-F1
  */
