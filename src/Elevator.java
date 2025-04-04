@@ -36,22 +36,19 @@ public class Elevator implements Runnable {
         return id;
     }
 
-    public synchronized boolean isFull() {
+    public boolean isFull() {
         return insideQueue.size() == capacity;
     }
 
     public boolean isInSchedule() {
-        synchronized (scheduleLock) {
-            scheduleLock.notifyAll();
-            return inSchedule;
-        }
+        return inSchedule;
     }
 
     public RequestQueue getRequestQueue() {
         return requestQueue;
     }
 
-    public synchronized int getCurFloor() {
+    public int getCurFloor() {
         return curFloor;
     }
 

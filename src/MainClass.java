@@ -29,8 +29,6 @@ public class MainClass {
         while (true) {
             Request request = elevatorInput.nextRequest();
             if (request == null) {
-                // 结束分配进程
-                dispatch.setEnd();
                 // 结束所有电梯进程
                 for (int i = 1; i <= 6; i++) {
                     elevators[i].getRequestQueue().setEnd();
@@ -46,6 +44,8 @@ public class MainClass {
                 }
             }
         }
+        // 结束分配进程
+        dispatch.setEnd();
         elevatorInput.close();
     }
 }
