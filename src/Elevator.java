@@ -18,7 +18,7 @@ public class Elevator implements Runnable {
     private Object scheduleLock;
     private int targetScheFloor;
     private static final long defaultTimePerFloor = 400;
-    private static long timePerFloor = 400;
+    private long timePerFloor = 400;
     private static long timeStop = 1000;
     private static final long minTimeOpen2Close = 400; // 400ms
     private final Dispatch dispatch;
