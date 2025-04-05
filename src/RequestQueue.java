@@ -77,6 +77,17 @@ public class RequestQueue {
         }
     }
 
+    public synchronized PersonRequest poll() {
+        PersonRequest pr = personRequests.peek();
+        personRequests.remove(pr);
+        for (int i = MIN_FLOOR; i <= MAX_FLOOR; i++) {
+            if (requestMap.get(i) != null && !requestMap.get(i).isEmpty()) {
+                requestMap.get(i).remove(pr);
+            }
+        }
+        return pr;
+    }
+
     public synchronized int nextTargetFloor(int curFloor) {
         int nextFloor = curFloor;
         // 向上查找

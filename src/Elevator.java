@@ -55,6 +55,9 @@ public class Elevator implements Runnable {
 
     public synchronized void scheduleStart(ScheRequest sr) {
         synchronized (scheduleLock) {
+            while (!getRequestQueue().getRequestsQueue().isEmpty()) {
+                dispatch.offer(getRequestQueue().poll(), true, curFloor);
+            }
             inSchedule = true;
             timePerFloor = (long) (sr.getSpeed() * 1000);
             targetScheFloor = intOf(sr.getToFloor());
@@ -328,7 +331,7 @@ public class Elevator implements Runnable {
                 }
             }
             // 如果requestQueue中有调度请求，应该开始调度，然后移动电梯
-            if (requestQueue.hasSche()) {
+            if (requestQueue.hasSche() && !inSchedule) {
                 //TimableOutput.println(Thread.currentThread().getName() + " Schedule start!!!!!!!!!!!!!!!!!!!");
                 scheduleStart(requestQueue.getScheRequest());
             }
