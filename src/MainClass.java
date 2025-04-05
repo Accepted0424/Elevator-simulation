@@ -1,6 +1,4 @@
 import com.oocourse.elevator2.ElevatorInput;
-import com.oocourse.elevator2.PersonRequest;
-import com.oocourse.elevator2.ScheRequest;
 import com.oocourse.elevator2.Request;
 import com.oocourse.elevator2.TimableOutput;
 
@@ -16,7 +14,9 @@ public class MainClass {
 
         // 启动分配线程
         Dispatch dispatch = new Dispatch(elevators);
-        new Thread(dispatch, "dispatch").start();
+        Thread dispatchThread = new Thread(dispatch, "dispatch");
+        dispatchThread.setDaemon(true);
+        dispatchThread.start();
 
         // 启动六个电梯线程
         for (int i = 1; i <= 6; i++) {
@@ -29,23 +29,14 @@ public class MainClass {
         while (true) {
             Request request = elevatorInput.nextRequest();
             if (request == null) {
-                // 结束所有电梯进程
-                for (int i = 1; i <= 6; i++) {
-                    elevators[i].getRequestQueue().setEnd();
-                }
+                TimableOutput.println("Input end");
+                dispatch.setEnd();
                 break;
             } else {
-                if (request instanceof PersonRequest) {
-                    PersonRequest pr = (PersonRequest) request;
-                    dispatch.offer(pr, false, 0);
-                } else if (request instanceof ScheRequest) {
-                    ScheRequest scheRequest = (ScheRequest) request;
-                    elevators[scheRequest.getElevatorId()].getRequestQueue().offer(scheRequest);
-                }
+                dispatch.offer(request, false, 0);
             }
         }
         // 结束分配进程
-        dispatch.setEnd();
         elevatorInput.close();
     }
 }
