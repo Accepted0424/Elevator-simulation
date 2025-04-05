@@ -66,6 +66,8 @@ public class Elevator implements Runnable {
     public synchronized void scheduleEnd() {
         synchronized (scheduleLock) {
             inSchedule = false;
+            requestQueue.scheEnd();
+            dispatch.hasScheEnd();
             timePerFloor = defaultTimePerFloor;
             TimableOutput.println(String.format("SCHE-END-%d", id));
             if (dispatch.allElevatorsBusy) {
@@ -248,6 +250,7 @@ public class Elevator implements Runnable {
             if (intOf(pr.getToFloor()) == curFloor) {
                 TimableOutput.println(String.format("OUT-S-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
+                dispatch.onePersonArrive();
                 if (dispatch.allElevatorsBusy) {
                     dispatch.hasFreeElevator();
                 }
@@ -263,6 +266,7 @@ public class Elevator implements Runnable {
             if (intOf(pr.getToFloor()) == curFloor) {
                 TimableOutput.println(String.format("OUT-S-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
+                dispatch.onePersonArrive();
                 if (dispatch.allElevatorsBusy) {
                     dispatch.hasFreeElevator();
                 }
@@ -305,14 +309,17 @@ public class Elevator implements Runnable {
     @Override
     public void run() {
         while (true) {
+            //TimableOutput.println("debug: " + Thread.currentThread().getName() + " while flag");
+            // 输入结束且没有未分配请求则该电梯的requestQueue会setEnd
+            // 如果该电梯没有未执行的请求、电梯内没人，不在调度状态，则结束该电梯线程
             if (requestQueue.isEnd() && requestQueue.isEmpty() &&
-                insideQueue.isEmpty() && !inSchedule && dispatch.isEmpty()) {
+                insideQueue.isEmpty() && !inSchedule) {
                 //TimableOutput.println(Thread.currentThread().getName() + " ends!!!!!!!!!!!!!!!!!!");
                 return;
             }
-            //TimableOutput.println(Thread.currentThread().getName() + !requestQueue.isEnd() + !dispatch.isEmpty() + requestQueue.isEmpty() + insideQueue.isEmpty() + !inSchedule);
-            while (!requestQueue.isEnd() && !dispatch.isEnd &&
-                requestQueue.isEmpty() && insideQueue.isEmpty() && !inSchedule) {
+            // requestQueue未结束（还有可能收到分配），并且电梯内没人，也不处于调度状态，此时电梯不能移动，必须处于等待状态
+            while (!requestQueue.isEnd() && requestQueue.isEmpty() &&
+                    insideQueue.isEmpty() && !inSchedule) {
                 try {
                     //TimableOutput.println(Thread.currentThread().getName() + " waiting for requests!!!!!!!!!!!!!!!!!!");
                     requestQueue.myWait();
@@ -320,9 +327,10 @@ public class Elevator implements Runnable {
                     throw new RuntimeException(e);
                 }
             }
+            // 如果requestQueue中有调度请求，应该开始调度，然后移动电梯
             if (requestQueue.hasSche()) {
                 //TimableOutput.println(Thread.currentThread().getName() + " Schedule start!!!!!!!!!!!!!!!!!!!");
-                scheduleStart(requestQueue.pollScheRequest());
+                scheduleStart(requestQueue.getScheRequest());
             }
             try {
                 //TimableOutput.println(Thread.currentThread().getName() + " execute!!!!!!!!!!!!!!!!!!!");

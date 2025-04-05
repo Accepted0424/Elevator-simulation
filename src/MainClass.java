@@ -14,9 +14,7 @@ public class MainClass {
 
         // 启动分配线程
         Dispatch dispatch = new Dispatch(elevators);
-        Thread dispatchThread = new Thread(dispatch, "dispatch");
-        dispatchThread.setDaemon(true);
-        dispatchThread.start();
+        new Thread(dispatch, "dispatch").start();
 
         // 启动六个电梯线程
         for (int i = 1; i <= 6; i++) {
@@ -30,7 +28,7 @@ public class MainClass {
             Request request = elevatorInput.nextRequest();
             if (request == null) {
                 //TimableOutput.println("Input end");
-                dispatch.setEnd();
+                dispatch.setInputIsEnd();
                 break;
             } else {
                 dispatch.offer(request, false, 0);

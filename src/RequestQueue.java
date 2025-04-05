@@ -29,11 +29,12 @@ public class RequestQueue {
         wait();
     }
 
-    public synchronized ScheRequest pollScheRequest() {
-        ScheRequest sr = nowScheRequest;
+    public synchronized ScheRequest getScheRequest() {
+        return nowScheRequest;
+    }
+
+    public synchronized void scheEnd() {
         nowScheRequest = null;
-        notifyAll();
-        return sr;
     }
 
     public synchronized boolean hasSche() {
@@ -68,7 +69,6 @@ public class RequestQueue {
                 throw new RuntimeException(e);
             }
         }
-        notifyAll();
         if (requestMap.containsKey(floor) && !requestMap.get(floor).isEmpty()) {
             personRequests.remove(requestMap.get(floor).peek());
             return requestMap.get(floor).poll();
@@ -102,7 +102,6 @@ public class RequestQueue {
                 }
             }
         }
-        notifyAll();
         return nextFloor;
     }
 
