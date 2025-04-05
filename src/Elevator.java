@@ -68,11 +68,11 @@ public class Elevator implements Runnable {
 
     public synchronized void scheduleEnd() {
         synchronized (scheduleLock) {
+            TimableOutput.println(String.format("SCHE-END-%d", id));
             inSchedule = false;
             requestQueue.scheEnd();
             dispatch.hasScheEnd();
             timePerFloor = defaultTimePerFloor;
-            TimableOutput.println(String.format("SCHE-END-%d", id));
             if (dispatch.allElevatorsBusy) {
                 dispatch.hasFreeElevator();
             }
@@ -274,9 +274,9 @@ public class Elevator implements Runnable {
                     dispatch.hasFreeElevator();
                 }
             } else {
-                dispatch.offer(pr, true, curFloor);
                 TimableOutput.println(String.format("OUT-F-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
+                dispatch.offer(pr, true, curFloor);
             }
             iterator.remove();  // 安全删除
         }
