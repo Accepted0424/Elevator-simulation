@@ -251,13 +251,13 @@ public class Elevator implements Runnable {
         while (iterator.hasNext()) {
             PersonRequest pr = iterator.next();
             if (intOf(pr.getToFloor()) == curFloor) {
-                TimableOutput.println(String.format("OUT-S-%d-%s-%d",
-                    pr.getPersonId(), formatFloor(curFloor), id));
                 dispatch.onePersonArrive();
                 if (dispatch.allElevatorsBusy) {
                     dispatch.hasFreeElevator();
                 }
                 iterator.remove();  // 安全删除
+                TimableOutput.println(String.format("OUT-S-%d-%s-%d",
+                    pr.getPersonId(), formatFloor(curFloor), id));
             }
         }
     }
@@ -267,6 +267,7 @@ public class Elevator implements Runnable {
         while (iterator.hasNext()) {
             PersonRequest pr = iterator.next();
             if (intOf(pr.getToFloor()) == curFloor) {
+                iterator.remove();  // 安全删除
                 TimableOutput.println(String.format("OUT-S-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
                 dispatch.onePersonArrive();
@@ -274,11 +275,12 @@ public class Elevator implements Runnable {
                     dispatch.hasFreeElevator();
                 }
             } else {
+                iterator.remove();  // 安全删除
                 TimableOutput.println(String.format("OUT-F-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
                 dispatch.offer(pr, true, curFloor);
             }
-            iterator.remove();  // 安全删除
+
         }
     }
 
