@@ -319,14 +319,12 @@ public class Elevator implements Runnable {
             // 如果该电梯没有未执行的请求、电梯内没人，不在调度状态，则结束该电梯线程
             if (requestQueue.isEnd() && requestQueue.isEmpty() &&
                 insideQueue.isEmpty() && !inSchedule) {
-                //TimableOutput.println(Thread.currentThread().getName() + " ends!!!!!!!!!!!!!!!!!!");
                 return;
             }
             // requestQueue未结束（还有可能收到分配），并且电梯内没人，也不处于调度状态，此时电梯不能移动，必须处于等待状态
             while (!requestQueue.isEnd() && requestQueue.isEmpty() &&
                     insideQueue.isEmpty() && !inSchedule) {
                 try {
-                    //TimableOutput.println(Thread.currentThread().getName() + " waiting for requests!!!!!!!!!!!!!!!!!!");
                     requestQueue.myWait();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
@@ -334,11 +332,9 @@ public class Elevator implements Runnable {
             }
             // 如果requestQueue中有调度请求，应该开始调度，然后移动电梯
             if (requestQueue.hasSche() && !inSchedule) {
-                //TimableOutput.println(Thread.currentThread().getName() + " Schedule start!!!!!!!!!!!!!!!!!!!");
                 scheduleStart(requestQueue.getScheRequest());
             }
             try {
-                //TimableOutput.println(Thread.currentThread().getName() + " execute!!!!!!!!!!!!!!!!!!!");
                 execute();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);

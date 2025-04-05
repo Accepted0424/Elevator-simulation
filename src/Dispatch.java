@@ -3,7 +3,12 @@ import com.oocourse.elevator2.Request;
 import com.oocourse.elevator2.ScheRequest;
 import com.oocourse.elevator2.TimableOutput;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
+import java.util.LinkedList;
+import java.util.Comparator;
 
 public class Dispatch implements Runnable {
     private final Elevator[] elevators;
@@ -121,7 +126,6 @@ public class Dispatch implements Runnable {
     public void run() {
         while (true) {
             // 输入未结束，还有可能获取请求
-            //TimableOutput.println(isEmpty() + " " + !isEnd() + " " + personRequestReceive + " " + personRequestArrive);
             while (isEmpty() && !isEnd()) {
                 try {
                     //TimableOutput.println("Dispatch waiting");
@@ -144,7 +148,6 @@ public class Dispatch implements Runnable {
             // 输入结束，且没有未分配队列，告知电梯的已分配队列不会再有来自dispatch的分配
 
             if (isEnd() && isEmpty()) {
-                //TimableOutput.println("all elevator requests will be set end.......................");
                 for (int i = 1; i <= 6; i++) {
                     elevators[i].getRequestQueue().setEnd();
                 }
