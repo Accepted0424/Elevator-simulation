@@ -55,13 +55,13 @@ public class Elevator implements Runnable {
 
     public synchronized void scheduleStart(ScheRequest sr) {
         synchronized (scheduleLock) {
-            while (!getRequestQueue().getRequestsQueue().isEmpty()) {
-                dispatch.offer(getRequestQueue().poll(), true, curFloor);
-            }
             inSchedule = true;
             timePerFloor = (long) (sr.getSpeed() * 1000);
             targetScheFloor = intOf(sr.getToFloor());
             TimableOutput.println(String.format("SCHE-BEGIN-%d", id));
+            while (!getRequestQueue().getRequestsQueue().isEmpty()) {
+                dispatch.offer(getRequestQueue().poll(), true, curFloor);
+            }
             scheduleLock.notifyAll();
         }
     }
