@@ -29,7 +29,7 @@ public class MainClass {
         while (true) {
             Request request = elevatorInput.nextRequest();
             if (request == null) {
-                TimableOutput.println("Input end");
+                //TimableOutput.println("Input end");
                 dispatch.setEnd();
                 break;
             } else {

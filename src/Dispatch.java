@@ -31,7 +31,7 @@ public class Dispatch implements Runnable {
 
     public synchronized void setEnd() {
         isEnd = true;
-        TimableOutput.println("Dispatch is set end");
+        //TimableOutput.println("Dispatch is set end");
         notifyAll();
     }
 

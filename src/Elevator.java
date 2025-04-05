@@ -118,9 +118,6 @@ public class Elevator implements Runnable {
         }
         if (insideQueue.isEmpty()) {
             if (requestQueue.isEmpty()) {
-                if (MainClass.debug) {
-                    TimableOutput.println("In Eleva" + "No requests to process, WAITING...");
-                }
                 return Status.WAIT;
             } else {
                 return updateDirection();
@@ -313,7 +310,8 @@ public class Elevator implements Runnable {
                 //TimableOutput.println(Thread.currentThread().getName() + " ends!!!!!!!!!!!!!!!!!!");
                 return;
             }
-            while (!requestQueue.isEnd() && !dispatch.isEmpty() &&
+            //TimableOutput.println(Thread.currentThread().getName() + !requestQueue.isEnd() + !dispatch.isEmpty() + requestQueue.isEmpty() + insideQueue.isEmpty() + !inSchedule);
+            while (!requestQueue.isEnd() && !dispatch.isEnd &&
                 requestQueue.isEmpty() && insideQueue.isEmpty() && !inSchedule) {
                 try {
                     //TimableOutput.println(Thread.currentThread().getName() + " waiting for requests!!!!!!!!!!!!!!!!!!");
@@ -323,9 +321,11 @@ public class Elevator implements Runnable {
                 }
             }
             if (requestQueue.hasSche()) {
+                //TimableOutput.println(Thread.currentThread().getName() + " Schedule start!!!!!!!!!!!!!!!!!!!");
                 scheduleStart(requestQueue.pollScheRequest());
             }
             try {
+                //TimableOutput.println(Thread.currentThread().getName() + " execute!!!!!!!!!!!!!!!!!!!");
                 execute();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);

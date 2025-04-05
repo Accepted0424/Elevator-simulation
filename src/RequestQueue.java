@@ -37,13 +37,7 @@ public class RequestQueue {
     }
 
     public synchronized boolean hasSche() {
-        notifyAll();
         return nowScheRequest != null;
-    }
-
-    public synchronized void nowScheEnd() {
-        notifyAll();
-        nowScheRequest = null;
     }
 
     public synchronized void offer(Request r) {
@@ -114,14 +108,12 @@ public class RequestQueue {
 
     public synchronized PriorityQueue<PersonRequest> getRequestsAt(int floor) {
         // probably return null
-        notifyAll();
         return requestMap.get(floor);
     }
 
     public synchronized int getComprehensivePriorityAt(int floor) {
         int sum = 0;
         if (getRequestsAt(floor) == null || getRequestsAt(floor).isEmpty()) {
-            notifyAll();
             return 0;
         }
         for (PersonRequest pr : getRequestsAt(floor)) {
@@ -137,7 +129,6 @@ public class RequestQueue {
                 sum += pr.getPriority() * floorDiff;
             }
         }
-        notifyAll();
         return sum;
     }
 
@@ -147,35 +138,28 @@ public class RequestQueue {
     }
 
     public synchronized boolean isEnd() {
-        notifyAll();
         return isEnd;
     }
 
     public synchronized boolean isEmpty() {
         if (!personRequests.isEmpty()) {
-            notifyAll();
             return false;
         }
         if (nowScheRequest != null) {
-            notifyAll();
             return false;
         }
         for (PriorityQueue<PersonRequest> prs : requestMap.values()) {
             if (!prs.isEmpty()) {
-                notifyAll();
                 return false;
             }
         }
-        notifyAll();
         return true;
     }
 
     private int intOf(String floor) {
         if (floor.startsWith("B")) {
-            notifyAll();
             return (-Integer.parseInt(floor.substring(1)));
         } else {
-            notifyAll();
             return (Integer.parseInt(floor.substring(1)));
         }
     }
