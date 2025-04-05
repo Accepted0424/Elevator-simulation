@@ -103,9 +103,9 @@ public class Dispatch implements Runnable {
                 allElevatorsBusy = true;
                 return;
             }
-            elevators[target].getRequestQueue().offer(unDispatchQueue.poll());
             TimableOutput.println(
                 String.format("RECEIVE-%d-%d", pr.getPersonId(), elevators[target].getId()));
+            elevators[target].getRequestQueue().offer(unDispatchQueue.poll());
         }
         notifyAll();
     }
