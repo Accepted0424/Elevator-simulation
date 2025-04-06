@@ -34,10 +34,6 @@ public class Elevator implements Runnable {
         return id;
     }
 
-    public synchronized boolean isFull() {
-        return insideQueue.size() == capacity;
-    }
-
     public RequestQueue getRequestQueue() {
         return requestQueue;
     }
@@ -46,19 +42,12 @@ public class Elevator implements Runnable {
         return curFloor;
     }
 
-    public boolean isInSchedule() {
-        synchronized (scheduleLock) {
-            scheduleLock.notifyAll();
-            return inSchedule;
-        }
-    }
-
     public synchronized void scheduleStart(ScheRequest sr) {
         synchronized (scheduleLock) {
             inSchedule = true;
+            TimableOutput.println(String.format("SCHE-BEGIN-%d", id));
             timePerFloor = (long) (sr.getSpeed() * 1000);
             targetScheFloor = intOf(sr.getToFloor());
-            TimableOutput.println(String.format("SCHE-BEGIN-%d", id));
             while (!getRequestQueue().getRequestsQueue().isEmpty()) {
                 dispatch.offer(getRequestQueue().poll(), true, curFloor);
             }
