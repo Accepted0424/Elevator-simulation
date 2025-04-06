@@ -13,7 +13,7 @@ public class Elevator implements Runnable {
     private final RequestQueue requestQueue;
     private final Queue<PersonRequest> insideQueue;
     private static final int capacity = 6;
-    public volatile boolean inSchedule = false;
+    private volatile boolean inSchedule = false;
     private final Object scheduleLock = new Object();
     private int targetScheFloor;
     private static final long defaultTimePerFloor = 400;
@@ -73,7 +73,7 @@ public class Elevator implements Runnable {
             requestQueue.scheEnd();
             dispatch.hasScheEnd();
             timePerFloor = defaultTimePerFloor;
-            if (dispatch.allElevatorsBusy) {
+            if (dispatch.allElevatorsBusy()) {
                 dispatch.hasFreeElevator();
             }
             scheduleLock.notifyAll();
@@ -252,7 +252,7 @@ public class Elevator implements Runnable {
             PersonRequest pr = iterator.next();
             if (intOf(pr.getToFloor()) == curFloor) {
                 dispatch.onePersonArrive();
-                if (dispatch.allElevatorsBusy) {
+                if (dispatch.allElevatorsBusy()) {
                     dispatch.hasFreeElevator();
                 }
                 iterator.remove();  // 安全删除
@@ -271,7 +271,7 @@ public class Elevator implements Runnable {
                 TimableOutput.println(String.format("OUT-S-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
                 dispatch.onePersonArrive();
-                if (dispatch.allElevatorsBusy) {
+                if (dispatch.allElevatorsBusy()) {
                     dispatch.hasFreeElevator();
                 }
             } else {

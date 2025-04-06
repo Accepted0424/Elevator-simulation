@@ -38,10 +38,3 @@ public class MainClass {
         elevatorInput.close();
     }
 }
-
-/*
-SCHE-6-0.2-F1
-417-PRI-15-FROM-B2-TO-B4
-SCHE-3-0.4-B1
-648-PRI-32-FROM-B2-TO-F1
- */

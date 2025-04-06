@@ -13,7 +13,7 @@ import java.util.Comparator;
 public class Dispatch implements Runnable {
     private final Elevator[] elevators;
     private volatile boolean inputIsEnd = false;
-    public volatile boolean allElevatorsBusy = false;
+    private volatile boolean allElevatorsBusy = false;
     private final Object busyLock = new Object();
     private final Map<PersonRequest, Integer> nowFloorMap = new HashMap<>();
     private final Queue<ScheRequest> unDispatchSche = new LinkedList<>();
@@ -25,6 +25,10 @@ public class Dispatch implements Runnable {
 
     public Dispatch(Elevator[] elevators) {
         this.elevators = elevators;
+    }
+
+    public boolean allElevatorsBusy() {
+        return allElevatorsBusy;
     }
 
     public synchronized void onePersonArrive() {
