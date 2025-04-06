@@ -228,8 +228,7 @@ public class Elevator implements Runnable {
                 TimableOutput.println(String.format("IN-%d-%s-%d",
                     requestQueue.getRequestsAt(curFloor).peek().getPersonId(),
                     formatFloor(curFloor), id));
-                dispatch.offer(insideQueue.peek(), true, curFloor);
-                requestQueue.offer(insideQueue.poll());
+                dispatch.offer(insideQueue.poll(), true, curFloor);
                 insideQueue.add(requestQueue.poll(curFloor));
             }
         }
