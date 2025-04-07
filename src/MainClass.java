@@ -31,7 +31,7 @@ public class MainClass {
                 dispatch.setInputIsEnd();
                 break;
             } else {
-                dispatch.offer(request, false, 0);
+                dispatch.offer(request, false, true, 0);
             }
         }
         // 结束分配进程

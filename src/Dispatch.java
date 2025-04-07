@@ -69,12 +69,12 @@ public class Dispatch implements Runnable {
         }
     }
 
-    public synchronized void offer(Request r, Boolean isRearrange, int nowFloor) {
+    public synchronized void offer(Request r, Boolean isRearrange, Boolean first, int nowFloor) {
         if (r instanceof PersonRequest) {
             PersonRequest pr = (PersonRequest) r;
             unDispatchQueue.offer(pr);
             nowFloorMap.put(pr, (isRearrange ? nowFloor : intOf(pr.getFromFloor())));
-            if (!isRearrange) {
+            if (!isRearrange && !first) {
                 personRequestReceive++;
             }
         } else if (r instanceof ScheRequest) {
@@ -88,7 +88,7 @@ public class Dispatch implements Runnable {
     private synchronized void dispatch() throws InterruptedException {
         while (!unDispatchSche.isEmpty()) {
             ScheRequest sr = unDispatchSche.peek();
-            elevators[sr.getElevatorId()].getRequestQueue().offer(unDispatchSche.poll());
+            elevators[sr.getElevatorId()].getRequestQueue().offer(unDispatchSche.poll(),  0);
         }
         // 分配给最近的空闲电梯
         if (!unDispatchQueue.isEmpty()) {
@@ -114,7 +114,7 @@ public class Dispatch implements Runnable {
             }
             TimableOutput.println(
                 String.format("RECEIVE-%d-%d", pr.getPersonId(), elevators[target].getId()));
-            elevators[target].getRequestQueue().offer(unDispatchQueue.poll());
+            elevators[target].getRequestQueue().offer(unDispatchQueue.poll(), nowFloorMap.get(pr));
         }
         notifyAll();
     }

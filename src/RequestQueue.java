@@ -40,17 +40,17 @@ public class RequestQueue {
         return nowScheRequest != null;
     }
 
-    public synchronized void offer(Request r) {
+    public synchronized void offer(Request r, int nowFloor) {
         if (r instanceof PersonRequest) {
             PersonRequest pr = (PersonRequest) r;
             personRequests.add(pr);
-            if (requestMap.containsKey(intOf(pr.getFromFloor()))) {
-                requestMap.get(intOf(pr.getFromFloor())).add(pr);
+            if (requestMap.containsKey(nowFloor)) {
+                requestMap.get(nowFloor).add(pr);
             } else {
                 PriorityQueue<PersonRequest> prs = new PriorityQueue<>(
                     Comparator.comparing(PersonRequest::getPriority).reversed());
                 prs.add(pr);
-                requestMap.put(intOf(pr.getFromFloor()), prs);
+                requestMap.put(nowFloor, prs);
             }
         } else if (r instanceof ScheRequest) {
             nowScheRequest = (ScheRequest) r;

@@ -49,7 +49,7 @@ public class Elevator implements Runnable {
             timePerFloor = (long) (sr.getSpeed() * 1000);
             targetScheFloor = intOf(sr.getToFloor());
             while (!getRequestQueue().getRequestsQueue().isEmpty()) {
-                dispatch.offer(getRequestQueue().poll(), true, curFloor);
+                dispatch.offer(getRequestQueue().poll(), false, false, 0);
             }
             scheduleLock.notifyAll();
         }
@@ -228,7 +228,7 @@ public class Elevator implements Runnable {
                 TimableOutput.println(String.format("IN-%d-%s-%d",
                     requestQueue.getRequestsAt(curFloor).peek().getPersonId(),
                     formatFloor(curFloor), id));
-                dispatch.offer(insideQueue.poll(), true, curFloor);
+                dispatch.offer(insideQueue.poll(), true, false,curFloor);
                 insideQueue.add(requestQueue.poll(curFloor));
             }
         }
@@ -266,7 +266,7 @@ public class Elevator implements Runnable {
                 iterator.remove();  // 安全删除
                 TimableOutput.println(String.format("OUT-F-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
-                dispatch.offer(pr, true, curFloor);
+                dispatch.offer(pr, true, false, curFloor);
             }
 
         }
