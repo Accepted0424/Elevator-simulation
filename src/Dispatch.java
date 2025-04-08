@@ -101,7 +101,7 @@ public class Dispatch implements Runnable {
             int target = 0;
             for (int i = 1; i <= 6; i++) {
                 if (!elevators[i].getRequestQueue().hasSche() &&
-                    elevators[i].getRequestQueue().getRequestsQueue().size() < 6) {
+                    elevators[i].getRequestQueue().getRequestsQueue().size() < 10) {
                     //TimableOutput.println("elevator_" + i + " is free");
                     if (target != 0) {
                         if (Math.abs(elevators[i].getCurFloor() - intOf(pr.getFromFloor())) <
