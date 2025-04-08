@@ -129,7 +129,7 @@ public class Dispatch implements Runnable {
 
     public void run() {
         while (true) {
-            TimableOutput.println(personRequestArrive + " " + personRequestReceive);
+            // TimableOutput.println(personRequestArrive + " " + personRequestReceive);
             // 输入未结束，还有可能获取请求
             while (isEmpty() && !isEnd()) {
                 try {
