@@ -73,7 +73,12 @@ public class Dispatch implements Runnable {
         if (r instanceof PersonRequest) {
             PersonRequest pr = (PersonRequest) r;
             unDispatchQueue.offer(pr);
-            nowFloorMap.put(pr, (isRearrange ? nowFloor : intOf(pr.getFromFloor())));
+            if (first) {
+                nowFloorMap.put(pr, intOf(pr.getFromFloor()));
+            }
+            if (isRearrange) {
+                nowFloorMap.put(pr, nowFloor);
+            }
             if (!isRearrange && first) {
                 personRequestReceive++;
             }
