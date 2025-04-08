@@ -74,7 +74,7 @@ public class Dispatch implements Runnable {
             PersonRequest pr = (PersonRequest) r;
             unDispatchQueue.offer(pr);
             nowFloorMap.put(pr, (isRearrange ? nowFloor : intOf(pr.getFromFloor())));
-            if (!isRearrange && !first) {
+            if (!isRearrange && first) {
                 personRequestReceive++;
             }
         } else if (r instanceof ScheRequest) {
@@ -129,6 +129,7 @@ public class Dispatch implements Runnable {
 
     public void run() {
         while (true) {
+            TimableOutput.println(personRequestArrive + " " + personRequestReceive);
             // 输入未结束，还有可能获取请求
             while (isEmpty() && !isEnd()) {
                 try {
