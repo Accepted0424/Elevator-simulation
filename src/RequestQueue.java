@@ -88,12 +88,12 @@ public class RequestQueue {
         return pr;
     }
 
-    public synchronized int nextTargetFloor(int curFloor) {
+    public synchronized int nextTargetFloor(int curFloor, Elevator elevator) {
         int nextFloor = curFloor;
         // 向上查找
         boolean upFound = false;
         for (int i = curFloor + 1; i <= MAX_FLOOR; i++) {
-            if (getRequestsAt(i) != null && !getRequestsAt(i).isEmpty()) {
+            if (getRequestsAt(i) != null && !getRequestsAt(i).isEmpty() && elevator.canArriveAt(i)) {
                 nextFloor = i;
                 upFound = true;
                 break;
@@ -101,7 +101,7 @@ public class RequestQueue {
         }
         // 向下查找
         for (int i = curFloor - 1; i >= MIN_FLOOR; i--) {
-            if (getRequestsAt(i) != null && !getRequestsAt(i).isEmpty()) {
+            if (getRequestsAt(i) != null && !getRequestsAt(i).isEmpty() && elevator.canArriveAt(i)) {
                 if (!upFound) {
                     nextFloor = i;
                     break;

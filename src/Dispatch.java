@@ -1,11 +1,9 @@
 import com.oocourse.elevator3.*;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Queue;
-import java.util.LinkedList;
-import java.util.Comparator;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Dispatch implements Runnable {
     private final Elevator[] elevators;
@@ -20,6 +18,9 @@ public class Dispatch implements Runnable {
         Comparator.comparing(PersonRequest::getPriority).reversed());
     private static int personRequestReceive = 0;
     private static int personRequestArrive = 0;
+    ExecutorService executor = Executors.newFixedThreadPool(5);
+    List<Future<?>> futures = new ArrayList<>();
+
 
     public Dispatch(Elevator[] elevators) {
         this.elevators = elevators;
@@ -75,6 +76,7 @@ public class Dispatch implements Runnable {
                 nowFloorMap.put(pr, intOf(pr.getFromFloor()));
             }
             if (isRearrange) {
+                //TimableOutput.println(pr + " nowFloor is reset to " + nowFloor);
                 nowFloorMap.put(pr, nowFloor);
             }
             if (!isRearrange && first) {
@@ -97,12 +99,32 @@ public class Dispatch implements Runnable {
         }
         while (!unDispatchUpdate.isEmpty()) {
             UpdateRequest ur = unDispatchUpdate.poll();
-            elevators[ur.getElevatorAId()].beforeUpdateBegin();
-            elevators[ur.getElevatorBId()].beforeUpdateBegin();
-            TimableOutput.println(String.format("UPDATE-BEGIN-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
-            elevators[ur.getElevatorAId()].updateStart(ur);
-            elevators[ur.getElevatorBId()].updateStart(ur);
-            TimableOutput.println(String.format("UPDATE-END-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
+            elevators[ur.getElevatorAId()].updateBegin();
+            elevators[ur.getElevatorBId()].updateBegin();
+            Future<?> future = executor.submit(() -> {
+                //TimableOutput.println(Thread.currentThread().getName() + " start");
+                elevators[ur.getElevatorAId()].beforeUpdateBegin();
+                elevators[ur.getElevatorBId()].beforeUpdateBegin();
+                //TimableOutput.println(Thread.currentThread().getName() + " will wait2still");
+                try {
+                    elevators[ur.getElevatorAId()].wait2still();
+                    elevators[ur.getElevatorBId()].wait2still();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                TimableOutput.println(String.format("UPDATE-BEGIN-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
+                try {
+                    elevators[ur.getElevatorAId()].updateStart(ur);
+                    elevators[ur.getElevatorBId()].updateStart(ur);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                TimableOutput.println(String.format("UPDATE-END-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
+                elevators[ur.getElevatorAId()].updateDone();
+                elevators[ur.getElevatorBId()].updateDone();
+                //TimableOutput.println(Thread.currentThread().getName() + " end");
+            });
+            futures.add(future);
         }
         // 分配给最近的空闲电梯
         if (!unDispatchQueue.isEmpty()) {
@@ -111,6 +133,7 @@ public class Dispatch implements Runnable {
             for (int i = 1; i <= 6; i++) {
                 if (!elevators[i].getRequestQueue().hasSche() &&
                     elevators[i].getRequestQueue().getRequestsQueue().size() < 10 &&
+                    !elevators[i].updateHasBegin() &&
                     elevators[i].canArriveAt(nowFloorMap.get(pr))) {
                     if (target1 != 0) {
                         if (Math.abs(elevators[i].getCurFloor() - intOf(pr.getFromFloor())) <
@@ -126,6 +149,7 @@ public class Dispatch implements Runnable {
             for (int i = 1; i <= 6; i++) {
                 if (!elevators[i].getRequestQueue().hasSche() &&
                     elevators[i].getRequestQueue().getRequestsQueue().size() < 10 &&
+                    !elevators[i].updateHasBegin() &&
                     elevators[i].canArriveAt(nowFloorMap.get(pr)) &&
                     elevators[i].canArriveTargetOf(pr)) {
                     if (target2 != 0) {
@@ -187,6 +211,16 @@ public class Dispatch implements Runnable {
                 for (int i = 1; i <= 6; i++) {
                     elevators[i].getRequestQueue().setEnd();
                 }
+                //TimableOutput.println("begin fget");
+                for (Future<?> f : futures) {
+                    try {
+                        f.get();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                //TimableOutput.println("end fget");
+                executor.shutdown();
                 break;
             }
             try {
