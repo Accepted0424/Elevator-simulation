@@ -1,7 +1,4 @@
-import com.oocourse.elevator2.PersonRequest;
-import com.oocourse.elevator2.Request;
-import com.oocourse.elevator2.ScheRequest;
-import com.oocourse.elevator2.TimableOutput;
+import com.oocourse.elevator3.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +14,7 @@ public class Dispatch implements Runnable {
     private final Object busyLock = new Object();
     private final Map<PersonRequest, Integer> nowFloorMap = new HashMap<>();
     private final Queue<ScheRequest> unDispatchSche = new LinkedList<>();
+    private final Queue<UpdateRequest> unDispatchUpdate = new LinkedList<>();
     private final PriorityQueue<PersonRequest> unDispatchQueue =
         new PriorityQueue<>(11,
         Comparator.comparing(PersonRequest::getPriority).reversed());
@@ -44,7 +42,7 @@ public class Dispatch implements Runnable {
     public synchronized boolean isEmpty() {
         //TimableOutput.println("dispatch isEmpty has lock");
         notifyAll();
-        return unDispatchQueue.isEmpty() && unDispatchSche.isEmpty();
+        return unDispatchQueue.isEmpty() && unDispatchSche.isEmpty() && unDispatchUpdate.isEmpty();
     }
 
     public synchronized void setInputIsEnd() {
@@ -85,8 +83,10 @@ public class Dispatch implements Runnable {
         } else if (r instanceof ScheRequest) {
             ScheRequest sr = (ScheRequest) r;
             unDispatchSche.offer(sr);
+        } else if (r instanceof UpdateRequest) {
+            UpdateRequest ur = (UpdateRequest) r;
+            unDispatchUpdate.add(ur);
         }
-        //TimableOutput.println("Dispatch get request: " + r);
         notifyAll();
     }
 
@@ -95,28 +95,54 @@ public class Dispatch implements Runnable {
             ScheRequest sr = unDispatchSche.peek();
             elevators[sr.getElevatorId()].getRequestQueue().offer(unDispatchSche.poll(),  0);
         }
+        while (!unDispatchUpdate.isEmpty()) {
+            UpdateRequest ur = unDispatchUpdate.poll();
+            elevators[ur.getElevatorAId()].beforeUpdateBegin();
+            elevators[ur.getElevatorBId()].beforeUpdateBegin();
+            TimableOutput.println(String.format("UPDATE-BEGIN-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
+            elevators[ur.getElevatorAId()].updateStart(ur);
+            elevators[ur.getElevatorBId()].updateStart(ur);
+            TimableOutput.println(String.format("UPDATE-END-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
+        }
         // 分配给最近的空闲电梯
         if (!unDispatchQueue.isEmpty()) {
             PersonRequest pr = unDispatchQueue.peek();
-            int target = 0;
+            int target1 = 0;
             for (int i = 1; i <= 6; i++) {
                 if (!elevators[i].getRequestQueue().hasSche() &&
-                    elevators[i].getRequestQueue().getRequestsQueue().size() < 10) {
-                    //TimableOutput.println("elevator_" + i + " is free");
-                    if (target != 0) {
+                    elevators[i].getRequestQueue().getRequestsQueue().size() < 10 &&
+                    elevators[i].canArriveAt(nowFloorMap.get(pr))) {
+                    if (target1 != 0) {
                         if (Math.abs(elevators[i].getCurFloor() - intOf(pr.getFromFloor())) <
-                            Math.abs(elevators[target].getCurFloor() - intOf(pr.getFromFloor()))) {
-                            target = i;
+                            Math.abs(elevators[target1].getCurFloor() - intOf(pr.getFromFloor()))) {
+                            target1 = i;
                         }
                     } else {
-                        target = i;
+                        target1 = i;
                     }
                 }
             }
-            if (target == 0) {
+            int target2 = 0;
+            for (int i = 1; i <= 6; i++) {
+                if (!elevators[i].getRequestQueue().hasSche() &&
+                    elevators[i].getRequestQueue().getRequestsQueue().size() < 10 &&
+                    elevators[i].canArriveAt(nowFloorMap.get(pr)) &&
+                    elevators[i].canArriveTargetOf(pr)) {
+                    if (target2 != 0) {
+                        if (Math.abs(elevators[i].getCurFloor() - intOf(pr.getFromFloor())) <
+                                Math.abs(elevators[target2].getCurFloor() - intOf(pr.getFromFloor()))) {
+                            target2 = i;
+                        }
+                    } else {
+                        target2 = i;
+                    }
+                }
+            }
+            if (target1 == 0 && target2 == 0) {
                 allElevatorsBusy = true;
                 return;
             }
+            int target = target2 == 0 ? target1 : target2;
             TimableOutput.println(
                 String.format("RECEIVE-%d-%d", pr.getPersonId(), elevators[target].getId()));
             elevators[target].getRequestQueue().offer(unDispatchQueue.poll(), nowFloorMap.get(pr));

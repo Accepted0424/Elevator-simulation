@@ -1,24 +1,18 @@
-import com.oocourse.elevator2.ElevatorInput;
-import com.oocourse.elevator2.Request;
-import com.oocourse.elevator2.TimableOutput;
+import com.oocourse.elevator3.ElevatorInput;
+import com.oocourse.elevator3.Request;
+import com.oocourse.elevator3.TimableOutput;
 
 public class MainClass {
-    // debug info
-    public static final boolean debug = false;
-    public static final String RESET = "\u001B[0m";  // 重置颜色
-    public static final String BLUE = "\u001B[34m";  // 蓝色
-
     public static void main(String[] args) throws Exception {
         TimableOutput.initStartTimestamp();
         Elevator[] elevators = new Elevator[7];
-
         // 启动分配线程
         Dispatch dispatch = new Dispatch(elevators);
         new Thread(dispatch, "dispatch").start();
 
         // 启动六个电梯线程
         for (int i = 1; i <= 6; i++) {
-            elevators[i] = new Elevator(i, dispatch);
+            elevators[i] = new Elevator(i, dispatch, elevators);
             new Thread(elevators[i], "elevator_" + i).start();
         }
 
@@ -27,7 +21,6 @@ public class MainClass {
         while (true) {
             Request request = elevatorInput.nextRequest();
             if (request == null) {
-                //TimableOutput.println("Input end");
                 dispatch.setInputIsEnd();
                 break;
             } else {
