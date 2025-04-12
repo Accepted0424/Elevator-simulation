@@ -1,6 +1,17 @@
-import com.oocourse.elevator3.*;
+import com.oocourse.elevator3.PersonRequest;
+import com.oocourse.elevator3.UpdateRequest;
+import com.oocourse.elevator3.ScheRequest;
+import com.oocourse.elevator3.Request;
+import com.oocourse.elevator3.TimableOutput;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
+import java.util.PriorityQueue;
+import java.util.Comparator;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -18,9 +29,8 @@ public class Dispatch implements Runnable {
         Comparator.comparing(PersonRequest::getPriority).reversed());
     private static int personRequestReceive = 0;
     private static int personRequestArrive = 0;
-    ExecutorService executor = Executors.newFixedThreadPool(5);
-    List<Future<?>> futures = new ArrayList<>();
-
+    private ExecutorService executor = Executors.newFixedThreadPool(5);
+    private List<Future<?>> futures = new ArrayList<>();
 
     public Dispatch(Elevator[] elevators) {
         this.elevators = elevators;
@@ -106,9 +116,6 @@ public class Dispatch implements Runnable {
         while (!unDispatchUpdate.isEmpty()) {
             UpdateRequest ur = unDispatchUpdate.poll();
             Future<?> future = executor.submit(() -> {
-
-                //TimableOutput.println(Thread.currentThread().getName() + " start");
-                //TimableOutput.println(Thread.currentThread().getName() + " will wait2still");
                 elevators[ur.getElevatorAId()].beforeUpdateBegin(ur);
                 elevators[ur.getElevatorBId()].beforeUpdateBegin(ur);
                 try {
@@ -117,13 +124,15 @@ public class Dispatch implements Runnable {
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                TimableOutput.println(String.format("UPDATE-BEGIN-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
+                TimableOutput.println(String.format("UPDATE-BEGIN-%d-%d",
+                    ur.getElevatorAId(), ur.getElevatorBId()));
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                TimableOutput.println(String.format("UPDATE-END-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
+                TimableOutput.println(String.format("UPDATE-END-%d-%d",
+                    ur.getElevatorAId(), ur.getElevatorBId()));
                 elevators[ur.getElevatorAId()].updateDone();
                 elevators[ur.getElevatorBId()].updateDone();
             });
@@ -157,7 +166,7 @@ public class Dispatch implements Runnable {
                     elevators[i].canArriveTargetOf(pr)) {
                     if (target2 != 0) {
                         if (Math.abs(elevators[i].getCurFloor() - intOf(pr.getFromFloor())) <
-                                Math.abs(elevators[target2].getCurFloor() - intOf(pr.getFromFloor()))) {
+                            Math.abs(elevators[target2].getCurFloor() - intOf(pr.getFromFloor()))) {
                             target2 = i;
                         }
                     } else {

@@ -1,7 +1,6 @@
 import com.oocourse.elevator3.PersonRequest;
 import com.oocourse.elevator3.Request;
 import com.oocourse.elevator3.ScheRequest;
-import com.oocourse.elevator3.UpdateRequest;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -97,7 +96,8 @@ public class RequestQueue {
         // 向上查找
         boolean upFound = false;
         for (int i = curFloor + 1; i <= MAX_FLOOR; i++) {
-            if (getRequestsAt(i) != null && !getRequestsAt(i).isEmpty() && elevator.canArriveAt(i)) {
+            if (getRequestsAt(i) != null &&
+                !getRequestsAt(i).isEmpty() && elevator.canArriveAt(i)) {
                 nextFloor = i;
                 upFound = true;
                 break;
@@ -105,7 +105,8 @@ public class RequestQueue {
         }
         // 向下查找
         for (int i = curFloor - 1; i >= MIN_FLOOR; i--) {
-            if (getRequestsAt(i) != null && !getRequestsAt(i).isEmpty() && elevator.canArriveAt(i)) {
+            if (getRequestsAt(i) != null &&
+                !getRequestsAt(i).isEmpty() && elevator.canArriveAt(i)) {
                 if (!upFound) {
                     nextFloor = i;
                     break;

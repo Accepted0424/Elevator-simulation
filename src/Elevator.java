@@ -3,7 +3,10 @@ import com.oocourse.elevator3.ScheRequest;
 import com.oocourse.elevator3.TimableOutput;
 import com.oocourse.elevator3.UpdateRequest;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 public class Elevator implements Runnable {
     private final int id;
@@ -27,8 +30,8 @@ public class Elevator implements Runnable {
     private boolean isStill = true;
     private int partnerElevatorId = 0;
     private int transferFloor = 0;
-    private int LIMIT_MAX_FLOOR = 7;
-    private int LIMIT_MIN_FLOOR = -4;
+    private int limitMaxFloor = 7;
+    private int limitMinFloor = -4;
     private boolean transferFloorIsOccupied = false;
 
     public Elevator(int id, Dispatch dispatch, Elevator[] elevators) {
@@ -72,7 +75,7 @@ public class Elevator implements Runnable {
         if (updateHasBegin && !afterUpdate) {
             return false;
         }
-        if (curFloor + 1 <= LIMIT_MAX_FLOOR) {
+        if (curFloor + 1 <= limitMaxFloor) {
             if (afterUpdate && curFloor + 1 == transferFloor) {
                 return transferFloorIsFree();
             }
@@ -85,7 +88,7 @@ public class Elevator implements Runnable {
         if (updateHasBegin && !afterUpdate) {
             return false;
         }
-        if (curFloor - 1 >= LIMIT_MIN_FLOOR) {
+        if (curFloor - 1 >= limitMinFloor) {
             if (afterUpdate && curFloor - 1 == transferFloor) {
                 return transferFloorIsFree();
             }
@@ -96,7 +99,6 @@ public class Elevator implements Runnable {
 
     public void removeAllReceive() {
         while (!getRequestQueue().getRequestsQueue().isEmpty()) {
-            //TimableOutput.println(Thread.currentThread().getName() + getRequestQueue().getRequestsQueue().peek() + "will be cancelled");
             dispatch.offer(getRequestQueue().poll(), false, false, 0);
         }
     }
@@ -104,10 +106,10 @@ public class Elevator implements Runnable {
     public void beforeUpdateBegin(UpdateRequest ur) {
         if (id == ur.getElevatorAId()) {
             curFloor = intOf(ur.getTransferFloor()) + 1;
-            LIMIT_MIN_FLOOR = intOf(ur.getTransferFloor());
+            limitMinFloor = intOf(ur.getTransferFloor());
         } else {
             curFloor = intOf(ur.getTransferFloor()) - 1;
-            LIMIT_MAX_FLOOR = intOf(ur.getTransferFloor());
+            limitMaxFloor = intOf(ur.getTransferFloor());
         }
         transferFloor = intOf(ur.getTransferFloor());
         partnerElevatorId = (id == ur.getElevatorAId()) ? ur.getElevatorBId() : ur.getElevatorAId();
@@ -115,11 +117,11 @@ public class Elevator implements Runnable {
     }
 
     public boolean canArriveAt(int floor) {
-        return floor >= LIMIT_MIN_FLOOR && floor <= LIMIT_MAX_FLOOR;
+        return floor >= limitMinFloor && floor <= limitMaxFloor;
     }
 
     public boolean canArriveTargetOf(PersonRequest pr) {
-        return intOf(pr.getToFloor()) >= LIMIT_MIN_FLOOR && intOf(pr.getToFloor()) <= LIMIT_MAX_FLOOR;
+        return intOf(pr.getToFloor()) >= limitMinFloor && intOf(pr.getToFloor()) <= limitMaxFloor;
     }
 
     public boolean updateHasBegin() {
@@ -194,7 +196,7 @@ public class Elevator implements Runnable {
         return sum;
     }
 
-    private boolean inUPDATE;
+    private boolean inUpdate;
 
     private synchronized Status update() {
         /* LOOK */
@@ -202,7 +204,7 @@ public class Elevator implements Runnable {
         if (inSchedule) {
             if (targetScheFloor > curFloor && canMove()) {
                 return Status.MOVE;
-            } else if (canReverse()){
+            } else if (canReverse()) {
                 return Status.REVERSE;
             }
         }
@@ -212,7 +214,6 @@ public class Elevator implements Runnable {
         }
 
         // 处于非调度状态
-        //TimableOutput.println("OPEN condition: " + hasPersonOut() + hasPersonIn() + needRearrange() + LIMIT_MIN_FLOOR + LIMIT_MAX_FLOOR);
         if (hasPersonOut() || hasPersonIn() || needRearrange()) {
             if (canOpen()) {
                 return Status.OPEN;
@@ -236,7 +237,7 @@ public class Elevator implements Runnable {
         } else {
             if (Double.compare(getInsideUpPri(), getInsideDownPri()) >= 0 && canMove()) {
                 return Status.MOVE;
-            } else if (canReverse()){
+            } else if (canReverse()) {
                 return Status.REVERSE;
             } else {
                 if (curFloor == transferFloor) {
@@ -281,7 +282,7 @@ public class Elevator implements Runnable {
             return Status.MOVE;
         } else if (nextFloor == curFloor) {
             return Status.WAIT;
-        } else if (canReverse()){
+        } else if (canReverse()) {
             return Status.REVERSE;
         } else {
             return Status.WAIT;
@@ -292,10 +293,9 @@ public class Elevator implements Runnable {
 
     public void wait2clearInside() throws InterruptedException {
         synchronized (clearInsideLock) {
-            while (!insideQueue.isEmpty() || !inUPDATE) {
+            while (!insideQueue.isEmpty() || !inUpdate) {
                 //TimableOutput.println(Thread.currentThread().getName() + ": wait2clearInside");
                 clearInsideLock.wait();
-                //TimableOutput.println(Thread.currentThread().getName() + ": wait2clearInside end");
             }
         }
     }
@@ -311,6 +311,7 @@ public class Elevator implements Runnable {
     }
 
     private boolean hasAcceptUpdate;
+
     public void acceptUpdate() {
         requestQueue.myNotify();
         hasAcceptUpdate = true;
@@ -337,7 +338,7 @@ public class Elevator implements Runnable {
         //TimableOutput.println(Thread.currentThread().getName() + " status: " + status);
         switch (status) {
             case UPDATE:
-                inUPDATE = true;
+                inUpdate = true;
                 //TimableOutput.println(Thread.currentThread().getName() + " in UPDATE status");
                 updateHasBegin = true;
                 if (!insideQueue.isEmpty()) {
@@ -352,7 +353,7 @@ public class Elevator implements Runnable {
                 //TimableOutput.println(Thread.currentThread().getName() + " will sleep");
                 Thread.sleep(1000);
                 removeAllReceive();
-                inUPDATE = false;
+                inUpdate = false;
                 return;
             case OPEN:
                 isStill = false;
@@ -400,6 +401,7 @@ public class Elevator implements Runnable {
                 break;
             case WAIT:
                 setStill();
+                break;
             default:
                 break;
         }
@@ -436,7 +438,6 @@ public class Elevator implements Runnable {
         Iterator<PersonRequest> iterator = insideQueue.iterator();
         while (iterator.hasNext()) {
             PersonRequest pr = iterator.next();
-            //TimableOutput.println("out condition: " + afterUpdate + (curFloor == transferFloor) + !canArriveTargetOf(pr));
             if (intOf(pr.getToFloor()) == curFloor) {
                 dispatch.onePersonArrive();
                 iterator.remove();  // 安全删除
@@ -451,7 +452,7 @@ public class Elevator implements Runnable {
                     dispatch.hasFreeElevator();
                 }
                 TimableOutput.println(String.format("OUT-F-%d-%s-%d",
-                        pr.getPersonId(), formatFloor(curFloor), id));
+                    pr.getPersonId(), formatFloor(curFloor), id));
                 dispatch.offer(pr, true, false,curFloor);
             }
         }
@@ -521,7 +522,6 @@ public class Elevator implements Runnable {
             while (!requestQueue.isEnd() && requestQueue.isEmpty() &&
                     insideQueue.isEmpty() && !inSchedule && !hasAcceptUpdate) {
                 try {
-                    //TimableOutput.println(Thread.currentThread().getName() + " is waiting for requests");
                     requestQueue.myWait();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
