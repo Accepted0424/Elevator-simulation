@@ -73,7 +73,8 @@ public class Elevator implements Runnable {
             return false;
         }
         if (curFloor + 1 <= limitMaxFloor) {
-            if (afterUpdate && curFloor + 1 == transferFloor) {
+            int nextFloor = curFloor == -1 ? 1 : curFloor + 1;
+            if (afterUpdate && nextFloor == transferFloor) {
                 return transferFloorIsFree();
             }
             return true;
@@ -86,7 +87,8 @@ public class Elevator implements Runnable {
             return false;
         }
         if (curFloor - 1 >= limitMinFloor) {
-            if (afterUpdate && curFloor - 1 == transferFloor) {
+            int nextFloor = curFloor == 1 ? -1 : curFloor - 1;
+            if (afterUpdate && nextFloor == transferFloor) {
                 return transferFloorIsFree();
             }
             return true;
@@ -118,10 +120,14 @@ public class Elevator implements Runnable {
 
     public void updateParam() {
         if (id == ur.getElevatorAId()) {
-            modifyFloor(false, false, true, intOf(ur.getTransferFloor()) + 1);
+            int modifiedFloor =  intOf(ur.getTransferFloor()) == -1 ?
+                1 : intOf(ur.getTransferFloor()) + 1;
+            modifyFloor(false, false, true, modifiedFloor);
             limitMinFloor = intOf(ur.getTransferFloor());
         } else {
-            modifyFloor(false, false, true, intOf(ur.getTransferFloor()) - 1);
+            int modifiedFloor =  intOf(ur.getTransferFloor()) == 1 ?
+                -1 : intOf(ur.getTransferFloor()) - 1;
+            modifyFloor(false, false, true, modifiedFloor);
             limitMaxFloor = intOf(ur.getTransferFloor());
         }
         transferFloor = intOf(ur.getTransferFloor());
@@ -140,8 +146,8 @@ public class Elevator implements Runnable {
     public void updateDone() {
         synchronized (updateLock) {
             afterUpdate = true;
-            dispatch.hasFreeElevator();
             hasAcceptUpdate = false;
+            dispatch.hasFreeElevator();
             updateLock.notifyAll();
         }
     }
@@ -291,7 +297,7 @@ public class Elevator implements Runnable {
     }
 
     public boolean canDispatch() {
-        return !updateHasBegin || afterUpdate;
+        return (!updateHasBegin || afterUpdate) && !inUpdate;
     }
 
     public void insideHasClear() {
@@ -351,7 +357,7 @@ public class Elevator implements Runnable {
                 }
                 break;
             case MOVE:
-                if (curFloor + 1 == transferFloor) {
+                if ((curFloor + 1 == 0 && curFloor + 2 == transferFloor) || curFloor + 1 == transferFloor) {
                     transferFloorIsOccupied = true;
                 }
                 modifyFloor(true, false, false, 0);
@@ -362,7 +368,7 @@ public class Elevator implements Runnable {
                 }
                 break;
             case REVERSE:
-                if (curFloor - 1 == transferFloor) {
+                if ((curFloor - 1 == 0 && curFloor - 2 == transferFloor) || curFloor - 1 == transferFloor) {
                     transferFloorIsOccupied = true;
                 }
                 modifyFloor(false, true, false, 0);
@@ -423,7 +429,7 @@ public class Elevator implements Runnable {
                 }
                 TimableOutput.println(String.format("OUT-F-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
-                dispatch.offer(pr, true, false,curFloor);
+                dispatch.offer(pr, true, false, curFloor);
             }
         }
     }
