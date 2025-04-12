@@ -98,8 +98,8 @@ public class Dispatch implements Runnable {
         } else if (r instanceof UpdateRequest) {
             UpdateRequest ur = (UpdateRequest) r;
             try {
-                elevators[ur.getElevatorAId()].acceptUpdate();
-                elevators[ur.getElevatorBId()].acceptUpdate();
+                elevators[ur.getElevatorAId()].acceptUpdate(ur);
+                elevators[ur.getElevatorBId()].acceptUpdate(ur);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -116,8 +116,6 @@ public class Dispatch implements Runnable {
         while (!unDispatchUpdate.isEmpty()) {
             UpdateRequest ur = unDispatchUpdate.poll();
             Future<?> future = executor.submit(() -> {
-                elevators[ur.getElevatorAId()].beforeUpdateBegin(ur);
-                elevators[ur.getElevatorBId()].beforeUpdateBegin(ur);
                 try {
                     elevators[ur.getElevatorAId()].wait2clearInside();
                     elevators[ur.getElevatorBId()].wait2clearInside();
@@ -145,8 +143,7 @@ public class Dispatch implements Runnable {
             for (int i = 1; i <= 6; i++) {
                 if (!elevators[i].getRequestQueue().hasSche() &&
                     elevators[i].getRequestQueue().getRequestsQueue().size() < 10 &&
-                    elevators[i].canDispatch() &&
-                    elevators[i].canArriveAt(nowFloorMap.get(pr))) {
+                    elevators[i].canDispatch() && elevators[i].canArriveAt(nowFloorMap.get(pr))) {
                     if (target1 != 0) {
                         if (Math.abs(elevators[i].getCurFloor() - intOf(pr.getFromFloor())) <
                             Math.abs(elevators[target1].getCurFloor() - intOf(pr.getFromFloor()))) {
@@ -157,23 +154,7 @@ public class Dispatch implements Runnable {
                     }
                 }
             }
-            int target2 = 0;
-            for (int i = 1; i <= 6; i++) {
-                if (!elevators[i].getRequestQueue().hasSche() &&
-                    elevators[i].getRequestQueue().getRequestsQueue().size() < 10 &&
-                    elevators[i].canDispatch() &&
-                    elevators[i].canArriveAt(nowFloorMap.get(pr)) &&
-                    elevators[i].canArriveTargetOf(pr)) {
-                    if (target2 != 0) {
-                        if (Math.abs(elevators[i].getCurFloor() - intOf(pr.getFromFloor())) <
-                            Math.abs(elevators[target2].getCurFloor() - intOf(pr.getFromFloor()))) {
-                            target2 = i;
-                        }
-                    } else {
-                        target2 = i;
-                    }
-                }
-            }
+            int target2 = searchTarget2(pr);
             if (target1 == 0 && target2 == 0) {
                 allElevatorsBusy = true;
                 return;
@@ -184,6 +165,27 @@ public class Dispatch implements Runnable {
             elevators[target].getRequestQueue().offer(unDispatchQueue.poll(), nowFloorMap.get(pr));
         }
         notifyAll();
+    }
+
+    private int searchTarget2(PersonRequest pr) {
+        int target2 = 0;
+        for (int i = 1; i <= 6; i++) {
+            if (!elevators[i].getRequestQueue().hasSche() &&
+                elevators[i].getRequestQueue().getRequestsQueue().size() < 10 &&
+                elevators[i].canDispatch() &&
+                elevators[i].canArriveAt(nowFloorMap.get(pr)) &&
+                elevators[i].canArriveTargetOf(pr)) {
+                if (target2 != 0) {
+                    if (Math.abs(elevators[i].getCurFloor() - intOf(pr.getFromFloor())) <
+                        Math.abs(elevators[target2].getCurFloor() - intOf(pr.getFromFloor()))) {
+                        target2 = i;
+                    }
+                } else {
+                    target2 = i;
+                }
+            }
+        }
+        return target2;
     }
 
     private static int intOf(String floor) {
@@ -200,7 +202,6 @@ public class Dispatch implements Runnable {
             // 输入未结束，还有可能获取请求
             while (isEmpty() && !isEnd()) {
                 try {
-                    //TimableOutput.println("Dispatch waiting");
                     dispatchWait();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
