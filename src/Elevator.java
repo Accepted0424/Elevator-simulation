@@ -311,6 +311,13 @@ public class Elevator implements Runnable {
             return;
         }
         Status status = update();
+        if (status == Status.WAIT && curFloor == transferFloor && afterUpdate) {
+            if (canMove()) {
+                status = Status.MOVE;
+            } else if (canReverse()) {
+                status = Status.REVERSE;
+            }
+        }
         //TimableOutput.println(Thread.currentThread().getName() + " status: " + status);
         switch (status) {
             case OPEN:
@@ -396,17 +403,18 @@ public class Elevator implements Runnable {
             //TimableOutput.println("out condition: " + afterUpdate + (curFloor == transferFloor) + !canArriveTargetOf(pr));
             if (intOf(pr.getToFloor()) == curFloor) {
                 dispatch.onePersonArrive();
+                iterator.remove();  // 安全删除
                 if (dispatch.allElevatorsBusy()) {
                     dispatch.hasFreeElevator();
                 }
-                iterator.remove();  // 安全删除
                 TimableOutput.println(String.format("OUT-S-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
             } else if (afterUpdate && curFloor == transferFloor && !canArriveTargetOf(pr)) {
+                dispatch.offer(pr, true, false,curFloor);
+                iterator.remove();  // 安全删除
                 if (dispatch.allElevatorsBusy()) {
                     dispatch.hasFreeElevator();
                 }
-                iterator.remove();  // 安全删除
                 TimableOutput.println(String.format("OUT-F-%d-%s-%d",
                         pr.getPersonId(), formatFloor(curFloor), id));
             }
@@ -470,11 +478,13 @@ public class Elevator implements Runnable {
             // 如果该电梯没有未执行的请求、电梯内没人，不在调度状态，则结束该电梯线程
             if (requestQueue.isEnd() && requestQueue.isEmpty() &&
                 insideQueue.isEmpty() && !inSchedule) {
+                //TimableOutput.println(Thread.currentThread().getName() + " is end");
                 return;
             }
             // requestQueue未结束（还有可能收到分配），并且电梯内没人，也不处于调度状态，此时电梯不能移动，必须处于等待状态
             while (!requestQueue.isEnd() && requestQueue.isEmpty() &&
-                    insideQueue.isEmpty() && !inSchedule) {
+                    insideQueue.isEmpty() && !inSchedule && !(afterUpdate && curFloor == transferFloor)) {
+                setStill();
                 try {
                     requestQueue.myWait();
                 } catch (InterruptedException e) {
