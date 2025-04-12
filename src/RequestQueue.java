@@ -29,6 +29,10 @@ public class RequestQueue {
         wait();
     }
 
+    public synchronized void myNotify() {
+        notifyAll();
+    }
+
     public synchronized ScheRequest getScheRequest() {
         return nowScheRequest;
     }

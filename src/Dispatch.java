@@ -87,6 +87,12 @@ public class Dispatch implements Runnable {
             unDispatchSche.offer(sr);
         } else if (r instanceof UpdateRequest) {
             UpdateRequest ur = (UpdateRequest) r;
+            try {
+                elevators[ur.getElevatorAId()].acceptUpdate();
+                elevators[ur.getElevatorBId()].acceptUpdate();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             unDispatchUpdate.add(ur);
         }
         notifyAll();
@@ -99,34 +105,27 @@ public class Dispatch implements Runnable {
         }
         while (!unDispatchUpdate.isEmpty()) {
             UpdateRequest ur = unDispatchUpdate.poll();
-            elevators[ur.getElevatorAId()].updateBegin();
-            elevators[ur.getElevatorBId()].updateBegin();
             Future<?> future = executor.submit(() -> {
+
                 //TimableOutput.println(Thread.currentThread().getName() + " start");
                 //TimableOutput.println(Thread.currentThread().getName() + " will wait2still");
+                elevators[ur.getElevatorAId()].beforeUpdateBegin(ur);
+                elevators[ur.getElevatorBId()].beforeUpdateBegin(ur);
                 try {
-                    elevators[ur.getElevatorAId()].wait2still();
-                    elevators[ur.getElevatorBId()].wait2still();
-                    elevators[ur.getElevatorAId()].beforeUpdateBegin();
-                    elevators[ur.getElevatorBId()].beforeUpdateBegin();
-                    elevators[ur.getElevatorAId()].wait2still();
-                    elevators[ur.getElevatorBId()].wait2still();
+                    elevators[ur.getElevatorAId()].wait2clearInside();
+                    elevators[ur.getElevatorBId()].wait2clearInside();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
                 TimableOutput.println(String.format("UPDATE-BEGIN-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
-                elevators[ur.getElevatorAId()].removeAllReceive();
-                elevators[ur.getElevatorBId()].removeAllReceive();
                 try {
-                    elevators[ur.getElevatorAId()].updateStart(ur);
-                    elevators[ur.getElevatorBId()].updateStart(ur);
+                    Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
                 TimableOutput.println(String.format("UPDATE-END-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
                 elevators[ur.getElevatorAId()].updateDone();
                 elevators[ur.getElevatorBId()].updateDone();
-                //TimableOutput.println(Thread.currentThread().getName() + " end");
             });
             futures.add(future);
         }
@@ -137,7 +136,7 @@ public class Dispatch implements Runnable {
             for (int i = 1; i <= 6; i++) {
                 if (!elevators[i].getRequestQueue().hasSche() &&
                     elevators[i].getRequestQueue().getRequestsQueue().size() < 10 &&
-                    !elevators[i].updateHasBegin() &&
+                    elevators[i].canDispatch() &&
                     elevators[i].canArriveAt(nowFloorMap.get(pr))) {
                     if (target1 != 0) {
                         if (Math.abs(elevators[i].getCurFloor() - intOf(pr.getFromFloor())) <
@@ -153,7 +152,7 @@ public class Dispatch implements Runnable {
             for (int i = 1; i <= 6; i++) {
                 if (!elevators[i].getRequestQueue().hasSche() &&
                     elevators[i].getRequestQueue().getRequestsQueue().size() < 10 &&
-                    !elevators[i].updateHasBegin() &&
+                    elevators[i].canDispatch() &&
                     elevators[i].canArriveAt(nowFloorMap.get(pr)) &&
                     elevators[i].canArriveTargetOf(pr)) {
                     if (target2 != 0) {
