@@ -60,6 +60,13 @@ public class Elevator implements Runnable {
         return curFloor;
     }
 
+    private boolean canOpen() {
+        if (updateHasBegin && !afterUpdate) {
+            return false;
+        }
+        return true;
+    }
+
     private boolean canMove() {
         //TimableOutput.println(updateHasBegin + " " + afterUpdate);
         if (updateHasBegin && !afterUpdate) {
@@ -231,7 +238,11 @@ public class Elevator implements Runnable {
         // 处于非调度状态
         //TimableOutput.println("OPEN condition: " + hasPersonOut() + hasPersonIn() + needRearrange() + LIMIT_MIN_FLOOR + LIMIT_MAX_FLOOR);
         if (hasPersonOut() || hasPersonIn() || needRearrange()) {
-            return Status.OPEN;
+            if (canOpen()) {
+                return Status.OPEN;
+            } else {
+                return Status.WAIT;
+            }
         }
         if (insideQueue.isEmpty()) {
             if (requestQueue.isEmpty()) {
