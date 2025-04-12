@@ -94,10 +94,11 @@ public class Elevator implements Runnable {
         }
     }
 
-    public void beforeUpdateBegin() {
+    public void beforeUpdateBegin() throws InterruptedException {
         if (!insideQueue.isEmpty()) {
             TimableOutput.println(String.format("OPEN-%s-%d", formatFloor(curFloor), id));
             allPersonOut();
+            Thread.sleep(minTimeOpen2Close);
             TimableOutput.println(String.format("CLOSE-%s-%d", formatFloor(curFloor), id));
         }
     }

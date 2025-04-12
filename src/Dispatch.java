@@ -107,11 +107,13 @@ public class Dispatch implements Runnable {
                 try {
                     elevators[ur.getElevatorAId()].wait2still();
                     elevators[ur.getElevatorBId()].wait2still();
+                    elevators[ur.getElevatorAId()].beforeUpdateBegin();
+                    elevators[ur.getElevatorBId()].beforeUpdateBegin();
+                    elevators[ur.getElevatorAId()].wait2still();
+                    elevators[ur.getElevatorBId()].wait2still();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                elevators[ur.getElevatorAId()].beforeUpdateBegin();
-                elevators[ur.getElevatorBId()].beforeUpdateBegin();
                 TimableOutput.println(String.format("UPDATE-BEGIN-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
                 elevators[ur.getElevatorAId()].removeAllReceive();
                 elevators[ur.getElevatorBId()].removeAllReceive();
