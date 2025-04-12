@@ -33,6 +33,7 @@ public class Elevator implements Runnable {
     private int limitMinFloor = -4;
     private boolean transferFloorIsOccupied = false;
     private boolean hasAcceptUpdate;
+    private boolean inUpdate;
 
     public Elevator(int id, Dispatch dispatch, Elevator[] elevators) {
         this.id = id;
@@ -196,8 +197,6 @@ public class Elevator implements Runnable {
         return sum;
     }
 
-    private boolean inUpdate;
-
     private synchronized Status update() {
         if (inSchedule) {
             if (targetScheFloor > curFloor && canMove()) {
@@ -249,10 +248,8 @@ public class Elevator implements Runnable {
 
     private synchronized boolean hasPersonOut() {
         for (PersonRequest pr : insideQueue) {
-            if (intOf(pr.getToFloor()) == curFloor) {
-                return true;
-            }
-            if (afterUpdate && curFloor == transferFloor && !canArriveTargetOf(pr)) {
+            if ((afterUpdate && curFloor == transferFloor && !canArriveTargetOf(pr)) ||
+                intOf(pr.getToFloor()) == curFloor) {
                 return true;
             }
         }
@@ -342,7 +339,7 @@ public class Elevator implements Runnable {
                 updateParam();
                 removeAllReceive();
                 inUpdate = false;
-                return;
+                break;
             case OPEN:
                 if (!inSchedule) {
                     TimableOutput.println(String.format("OPEN-%s-%d", formatFloor(curFloor), id));
@@ -375,7 +372,6 @@ public class Elevator implements Runnable {
                     transferFloorIsOccupied = false;
                 }
                 break;
-            case WAIT:
             default:
                 break;
         }
@@ -465,19 +461,13 @@ public class Elevator implements Runnable {
     }
 
     private String formatFloor(int floor) {
-        if (floor < 0) {
-            return String.format("B%d", Math.abs(floor));
-        } else {
-            return String.format("F%d", Math.abs(floor));
-        }
+        return floor < 0 ? String.format("B%d", Math.abs(floor)) :
+                String.format("F%d", Math.abs(floor));
     }
 
     private int intOf(String floor) {
-        if (floor.startsWith("B")) {
-            return (-Integer.parseInt(floor.substring(1)));
-        } else {
-            return (Integer.parseInt(floor.substring(1)));
-        }
+        return floor.startsWith("B") ? (-Integer.parseInt(floor.substring(1))) :
+                (Integer.parseInt(floor.substring(1)));
     }
 
     @Override
@@ -489,7 +479,7 @@ public class Elevator implements Runnable {
             }
             while (!requestQueue.isEnd() && requestQueue.isEmpty() &&
                     insideQueue.isEmpty() && !inSchedule && !hasAcceptUpdate &&
-                    (afterUpdate && curFloor != transferFloor)) {
+                    (!afterUpdate || curFloor != transferFloor)) {
                 try {
                     requestQueue.myWait();
                 } catch (InterruptedException e) {
