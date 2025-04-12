@@ -339,6 +339,7 @@ public class Elevator implements Runnable {
             case UPDATE:
                 inUPDATE = true;
                 //TimableOutput.println(Thread.currentThread().getName() + " in UPDATE status");
+                updateHasBegin = true;
                 if (!insideQueue.isEmpty()) {
                     TimableOutput.println(String.format("OPEN-%s-%d", formatFloor(curFloor), id));
                     allPersonOut();
@@ -350,7 +351,6 @@ public class Elevator implements Runnable {
                 hasAcceptUpdate = false;
                 //TimableOutput.println(Thread.currentThread().getName() + " will sleep");
                 Thread.sleep(1000);
-                updateHasBegin = true;
                 removeAllReceive();
                 inUPDATE = false;
                 return;
@@ -371,11 +371,11 @@ public class Elevator implements Runnable {
                 if (curFloor + 1 == transferFloor) {
                     transferFloorIsOccupied = true;
                 }
-                Thread.sleep(timePerFloor);
                 curFloor++;
                 if (curFloor == 0) {
                     curFloor++;
                 }
+                Thread.sleep(timePerFloor);
                 TimableOutput.println(String.format("ARRIVE-%s-%d", formatFloor(curFloor), id));
                 if (curFloor != transferFloor) {
                     transferFloorIsOccupied = false;
@@ -387,11 +387,11 @@ public class Elevator implements Runnable {
                 if (curFloor - 1 == transferFloor) {
                     transferFloorIsOccupied = true;
                 }
-                Thread.sleep(timePerFloor);
                 curFloor--;
                 if (curFloor == 0) {
                     curFloor--;
                 }
+                Thread.sleep(timePerFloor);
                 TimableOutput.println(String.format("ARRIVE-%s-%d", formatFloor(curFloor), id));
                 if (curFloor != transferFloor) {
                     transferFloorIsOccupied = false;
