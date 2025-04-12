@@ -72,8 +72,8 @@ public class Elevator implements Runnable {
         if (updateHasBegin && !afterUpdate) {
             return false;
         }
-        if (curFloor + 1 <= limitMaxFloor) {
-            int nextFloor = curFloor == -1 ? 1 : curFloor + 1;
+        int nextFloor = curFloor == -1 ? 1 : curFloor + 1;
+        if (nextFloor <= limitMaxFloor) {
             if (afterUpdate && nextFloor == transferFloor) {
                 return transferFloorIsFree();
             }
@@ -86,8 +86,8 @@ public class Elevator implements Runnable {
         if (updateHasBegin && !afterUpdate) {
             return false;
         }
-        if (curFloor - 1 >= limitMinFloor) {
-            int nextFloor = curFloor == 1 ? -1 : curFloor - 1;
+        int nextFloor = curFloor == 1 ? -1 : curFloor - 1;
+        if (nextFloor >= limitMinFloor) {
             if (afterUpdate && nextFloor == transferFloor) {
                 return transferFloorIsFree();
             }
@@ -357,7 +357,8 @@ public class Elevator implements Runnable {
                 }
                 break;
             case MOVE:
-                if ((curFloor + 1 == 0 && curFloor + 2 == transferFloor) || curFloor + 1 == transferFloor) {
+                if ((curFloor + 1 == 0 && curFloor + 2 == transferFloor) ||
+                    curFloor + 1 == transferFloor) {
                     transferFloorIsOccupied = true;
                 }
                 modifyFloor(true, false, false, 0);
@@ -368,7 +369,8 @@ public class Elevator implements Runnable {
                 }
                 break;
             case REVERSE:
-                if ((curFloor - 1 == 0 && curFloor - 2 == transferFloor) || curFloor - 1 == transferFloor) {
+                if ((curFloor - 1 == 0 && curFloor - 2 == transferFloor) ||
+                    curFloor - 1 == transferFloor) {
                     transferFloorIsOccupied = true;
                 }
                 modifyFloor(false, true, false, 0);
