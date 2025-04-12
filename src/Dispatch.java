@@ -103,8 +103,6 @@ public class Dispatch implements Runnable {
             elevators[ur.getElevatorBId()].updateBegin();
             Future<?> future = executor.submit(() -> {
                 //TimableOutput.println(Thread.currentThread().getName() + " start");
-                elevators[ur.getElevatorAId()].beforeUpdateBegin();
-                elevators[ur.getElevatorBId()].beforeUpdateBegin();
                 //TimableOutput.println(Thread.currentThread().getName() + " will wait2still");
                 try {
                     elevators[ur.getElevatorAId()].wait2still();
@@ -112,7 +110,11 @@ public class Dispatch implements Runnable {
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
+                elevators[ur.getElevatorAId()].beforeUpdateBegin();
+                elevators[ur.getElevatorBId()].beforeUpdateBegin();
                 TimableOutput.println(String.format("UPDATE-BEGIN-%d-%d", ur.getElevatorAId(), ur.getElevatorBId()));
+                elevators[ur.getElevatorAId()].removeAllReceive();
+                elevators[ur.getElevatorBId()].removeAllReceive();
                 try {
                     elevators[ur.getElevatorAId()].updateStart(ur);
                     elevators[ur.getElevatorBId()].updateStart(ur);

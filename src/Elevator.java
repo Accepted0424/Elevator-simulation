@@ -95,7 +95,6 @@ public class Elevator implements Runnable {
     }
 
     public void beforeUpdateBegin() {
-        removeAllReceive();
         if (!insideQueue.isEmpty()) {
             TimableOutput.println(String.format("OPEN-%s-%d", formatFloor(curFloor), id));
             allPersonOut();
@@ -330,6 +329,7 @@ public class Elevator implements Runnable {
                     Thread.sleep(minTimeOpen2Close);
                     TimableOutput.println(String.format("CLOSE-%s-%d", formatFloor(curFloor), id));
                 }
+                setStill();
                 break;
             case MOVE:
                 isStill = false;
@@ -364,6 +364,7 @@ public class Elevator implements Runnable {
                 setStill();
                 break;
             case WAIT:
+                setStill();
             default:
                 break;
         }
@@ -483,8 +484,10 @@ public class Elevator implements Runnable {
             }
             // requestQueue未结束（还有可能收到分配），并且电梯内没人，也不处于调度状态，此时电梯不能移动，必须处于等待状态
             while (!requestQueue.isEnd() && requestQueue.isEmpty() &&
-                    insideQueue.isEmpty() && !inSchedule && !(afterUpdate && curFloor == transferFloor)) {
-                setStill();
+                    insideQueue.isEmpty() && !inSchedule) {
+                if (afterUpdate && curFloor == transferFloor) {
+                    break;
+                }
                 try {
                     requestQueue.myWait();
                 } catch (InterruptedException e) {
