@@ -118,10 +118,6 @@ public class Elevator implements Runnable {
         return intOf(pr.getToFloor()) >= LIMIT_MIN_FLOOR && intOf(pr.getToFloor()) <= LIMIT_MAX_FLOOR;
     }
 
-    public boolean isAfterUpdate() {
-        return afterUpdate;
-    }
-
     public boolean updateHasBegin() {
         return updateHasBegin;
     }
@@ -132,7 +128,7 @@ public class Elevator implements Runnable {
 
     public void wait2still() throws InterruptedException {
         synchronized (stillLock) {
-            if (!isStill) {
+            while (!isStill) {
                 //TimableOutput.println(Thread.currentThread().getName() + " still Lock waiting...");
                 stillLock.wait();
                 //TimableOutput.println("still Lock free");
@@ -423,13 +419,13 @@ public class Elevator implements Runnable {
                 TimableOutput.println(String.format("OUT-S-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
             } else if (afterUpdate && curFloor == transferFloor && !canArriveTargetOf(pr)) {
-                dispatch.offer(pr, true, false,curFloor);
                 iterator.remove();  // 安全删除
                 if (dispatch.allElevatorsBusy()) {
                     dispatch.hasFreeElevator();
                 }
                 TimableOutput.println(String.format("OUT-F-%d-%s-%d",
                         pr.getPersonId(), formatFloor(curFloor), id));
+                dispatch.offer(pr, true, false,curFloor);
             }
         }
     }
