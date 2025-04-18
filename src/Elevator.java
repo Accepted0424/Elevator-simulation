@@ -290,7 +290,7 @@ public class Elevator implements Runnable {
     }
 
     public boolean canDispatch() {
-        return (!updateHasBegin || afterUpdate) && !inUpdate;
+        return (!updateHasBegin || afterUpdate) && !inUpdate && !hasAcceptUpdate;
     }
 
     public void insideHasClear() {
