@@ -104,6 +104,7 @@ public class Dispatch implements Runnable {
                 e.printStackTrace();
             }
             unDispatchUpdate.add(ur);
+            hasFreeElevator();
         }
         notifyAll();
     }
@@ -176,10 +177,7 @@ public class Dispatch implements Runnable {
                 elevators[i].canArriveAt(nowFloorMap.get(pr)) &&
                 elevators[i].canArriveTargetOf(pr)) {
                 if (target2 != 0) {
-                    if (Math.abs(elevators[i].getCurFloor() - intOf(pr.getFromFloor())) <
-                        Math.abs(elevators[target2].getCurFloor() - intOf(pr.getFromFloor()))) {
-                        target2 = i;
-                    }
+                    target2 = i;
                 } else {
                     target2 = i;
                 }
