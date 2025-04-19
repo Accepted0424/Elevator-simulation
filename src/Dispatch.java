@@ -29,7 +29,7 @@ public class Dispatch implements Runnable {
         Comparator.comparing(PersonRequest::getPriority).reversed());
     private static int personRequestReceive = 0;
     private static int personRequestArrive = 0;
-    private ExecutorService executor = Executors.newFixedThreadPool(60);
+    private ExecutorService executor = Executors.newCachedThreadPool();
     private List<Future<?>> futures = new ArrayList<>();
 
     public Dispatch(Elevator[] elevators) {
