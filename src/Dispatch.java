@@ -12,9 +12,10 @@ import java.util.PriorityQueue;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class Dispatch implements Runnable {
     private final Elevator[] elevators;
@@ -29,7 +30,7 @@ public class Dispatch implements Runnable {
         Comparator.comparing(PersonRequest::getPriority).reversed());
     private static int personRequestReceive = 0;
     private static int personRequestArrive = 0;
-    private ExecutorService executor = Executors.newCachedThreadPool();
+    private ScheduledExecutorService executor = Executors.newScheduledThreadPool(5);
     private List<Future<?>> futures = new ArrayList<>();
 
     public Dispatch(Elevator[] elevators) {
@@ -116,7 +117,7 @@ public class Dispatch implements Runnable {
         }
         while (!unDispatchUpdate.isEmpty()) {
             UpdateRequest ur = unDispatchUpdate.poll();
-            Future<?> future = executor.submit(() -> {
+            Future<?> future = executor.schedule(() -> {
                 try {
                     elevators[ur.getElevatorAId()].wait2clearInside();
                     elevators[ur.getElevatorBId()].wait2clearInside();
@@ -134,7 +135,7 @@ public class Dispatch implements Runnable {
                     ur.getElevatorAId(), ur.getElevatorBId()));
                 elevators[ur.getElevatorAId()].updateDone();
                 elevators[ur.getElevatorBId()].updateDone();
-            });
+            }, 0, TimeUnit.SECONDS);
             futures.add(future);
         }
         // 分配给最近的空闲电梯
@@ -180,6 +181,7 @@ public class Dispatch implements Runnable {
                     target2 = i;
                 } else {
                     target2 = i;
+                    break;
                 }
             }
         }
