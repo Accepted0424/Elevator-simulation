@@ -412,19 +412,19 @@ public class Elevator implements Runnable {
             if (intOf(pr.getToFloor()) == curFloor) {
                 dispatch.onePersonArrive();
                 iterator.remove();  // 安全删除
-                if (dispatch.allElevatorsBusy()) {
-                    dispatch.hasFreeElevator();
-                }
                 TimableOutput.println(String.format("OUT-S-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
-            } else if (afterUpdate && curFloor == transferFloor && !canArriveTargetOf(pr)) {
-                iterator.remove();  // 安全删除
                 if (dispatch.allElevatorsBusy()) {
                     dispatch.hasFreeElevator();
                 }
+            } else if (afterUpdate && curFloor == transferFloor && !canArriveTargetOf(pr)) {
+                iterator.remove();  // 安全删除
                 TimableOutput.println(String.format("OUT-F-%d-%s-%d",
                     pr.getPersonId(), formatFloor(curFloor), id));
                 dispatch.offer(pr, true, false, curFloor);
+                if (dispatch.allElevatorsBusy()) {
+                    dispatch.hasFreeElevator();
+                }
             }
         }
     }
